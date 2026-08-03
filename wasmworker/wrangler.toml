@@ -1,0 +1,20 @@
+# The edge tier. `bash wasmworker/dev.sh` runs it locally under workerd;
+# deploying is a decision someone makes on purpose, not a side effect of a test.
+name = "mojojojo-edge"
+main = "src/entry.py"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["python_workers"]
+
+# The isolate is killed here, whatever the request asked for. Our own softer
+# deadline (entry.py) fires first and returns a clean 124 with the program's
+# output; this one is the backstop for code that defeats it.
+[limits]
+cpu_ms = 30000
+
+[observability]
+enabled = true
+
+# EDGE_TOKEN is a secret, not a var: `wrangler secret put EDGE_TOKEN`. Without
+# it the worker serves anyone who finds the URL, which is our Cloudflare bill.
+[vars]
+MOJOJOJO_TIER = "edge"

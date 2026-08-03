@@ -1,0 +1,6 @@
+The hosted service is one consumer of separate MIT-licensed projects: mojosub, the hybrid compiler, the mjj agent, and the factory that builds and tests library ports.
+
+A generated repository is not automatically a ready port. The live service only marks ports ready after integration checks; each project owns its own tests and benchmark notes.
+
+Map the stack: {{.SiteBaseURL}}/research/the-open-source-stack-behind-mojojojo?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=open-source
+Create an API key: {{.SiteBaseURL}}/keys?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=open-source

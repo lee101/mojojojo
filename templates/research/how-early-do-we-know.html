@@ -1,0 +1,191 @@
+{{template "posthead" .}}
+
+<p>mojojojo takes arbitrary Python and tries to make the numeric parts native.
+Most submitted Python is not numeric, so most of the time the answer is "this
+runs on CPython" — and the interesting engineering question is not how fast the
+compiled path is. It is <b>how early we find out that there is no compiled
+path</b>.</p>
+
+<p>There are four places that can say no, and they do not cost the same:</p>
+
+<table>
+  <thead><tr><th>Stage</th><th>Cost of a "no" here</th></tr></thead>
+  <tbody>
+    <tr><td>Static filter</td><td class="mono">~100 µs, free</td></tr>
+    <tr><td>Transpiler</td><td class="mono">~0.4 ms, and the function is already decorated</td></tr>
+    <tr><td>Compiler</td><td class="mono">~5 s of <em>host</em> compiler, plus a cache entry nobody loads</td></tr>
+    <tr><td>Timing race</td><td class="mono">one extra interpreted call, per signature</td></tr>
+  </tbody>
+</table>
+
+<p>The third row is the one that matters, and it is easy to miss why. In this
+service the sandbox has <a href="/research/no-compiler-in-the-sandbox">no
+compiler at all</a> — a build is a <em>request</em> that the host fills
+afterwards. So a function that gets as far as the compiler and then fails does
+not slow down the run that submitted it. It spends five seconds of a shared
+machine on behalf of somebody who is no longer waiting, and it does that on
+every submission, for ever, because nothing was learned.</p>
+
+<div class="takeaway">
+<b>The asymmetry that shapes everything:</b> being wrong in the permissive
+direction costs a compiler and is paid by somebody else. Being wrong in the
+restrictive direction costs one speedup, once. So the filter is allowed to be
+narrower than the transpiler and is not allowed to be wider.
+</div>
+
+<h2>You cannot tune this without a corpus</h2>
+
+<p>"Does the filter work" is unanswerable in the abstract, so we wrote down 22
+programs of the shape people actually submit — backtests, Monte Carlo, rolling
+statistics, and the glue code that surrounds them — and hand-labelled each with
+what <em>should</em> happen to it, by measurement rather than by reading the
+filter. Three labels: <code class="inl">native</code>,
+<code class="inl">cpython</code>, and <code class="inl">either</code> for cases
+too small to care.</p>
+
+<p>The corpus is <code class="inl">bench/corpus.py</code> and the harness is
+<code class="inl">bench/fallback_study.py</code>. It reports, per case, what each
+stage said and what the two tiers actually measured:</p>
+
+<pre data-lang="bash">bench/run.sh bench/fallback_study.py --compile --crossover</pre>
+
+<p>The first run was not flattering. Of 14 cases that must end on CPython, the
+filter caught 9. Five got a transpile they could never pass, and two of those
+went on to get a real compile.</p>
+
+<h2>What leaked, and why a node blacklist could not catch it</h2>
+
+<p>The old filter walked the AST and rejected a list of statement types —
+<code class="inl">Try</code>, <code class="inl">With</code>,
+<code class="inl">Import</code>, comprehensions, and so on. That is the obvious
+design and it misses two whole categories.</p>
+
+<h3>1. Free variables</h3>
+
+<pre data-lang="python">WINDOW = 64
+
+def score(xs) -> float:
+    total = 0.0
+    for i in range(WINDOW):
+        total += xs[i]
+    return total</pre>
+
+<p>Every node in that function is on the allowed list. It still cannot be
+compiled: the transpiler has no environment outside the function, so
+<code class="inl">WINDOW</code> is not a constant it can fold, it is
+<code class="inl">Unsupported: unbound name WINDOW</code>. And hoisting a window
+size to the top of the file is <em>good Python</em>, so this is not a rare
+shape — it is what carefully written code looks like.</p>
+
+<p>Catching it is a scope computation, not a node test: collect the parameters,
+the assignment targets and the loop targets, then check that every name read is
+in that set. Annotations are excluded, or <code class="inl">list[float]</code>
+makes <code class="inl">list</code> look like a name the body reads.</p>
+
+<h3>2. Reachability through helpers</h3>
+
+<pre data-lang="python">def helper(x):
+    return sorted([x, 1.0])[0]
+
+def process(xs) -> float:
+    total = 0.0
+    for i in range(len(xs)):
+        total += helper(xs[i])
+    return total</pre>
+
+<p><code class="inl">process</code> is spotless. It is also uncompilable,
+because the transpiler emits a unit — every function it needs, together — or
+nothing, and <code class="inl">helper</code> is not in the subset. Worse,
+<code class="inl">helper</code> would be out even if its body were pure
+arithmetic: mojosub builds helper signatures from <em>annotations</em>, and an
+unannotated helper is simply absent from the unit, so the call cannot be
+emitted.</p>
+
+<p>Deciding this needs the sibling functions' bodies, so the filter now receives
+name → node rather than a set of names, and recurses. Recursion in the user's
+code is treated as fine — a function already on the stack is being checked by
+the frame below it.</p>
+
+<h3>A distinction worth keeping</h3>
+
+<p>Doing the above surfaced a bug of our own. The filter required a loop, on the
+reasonable ground that a function with no loop has nothing to win. But that is a
+statement about whether compiling is <em>worth it</em>, not about whether it is
+<em>possible</em> — and a helper called from inside somebody else's loop is very
+much worth compiling with no loop of its own. So the two questions are now two
+functions: <code class="inl">compilable()</code> and
+<code class="inl">eligible()</code>, which is <code class="inl">compilable()</code>
+plus a reason to bother.</p>
+
+<h2>One case where the old filter was too strict</h2>
+
+<p>It also rejected functions taking no arguments, since there is no signature
+to specialise. Measured, that was a mistake:</p>
+
+<pre data-lang="python">def constant_work() -> int:
+    total = 0
+    for i in range(1000):
+        total += i * i
+    return total</pre>
+
+<p>It cannot be specialised, but it does not need to be. Because the compile
+cache is shared and persistent, the <em>second</em> submission of this program
+dispatches natively on the first call — mojosub's warm start looks the library
+up before running anything. Measured at <b class="acid">140x</b>. Refusing it
+gave that away for nothing.</p>
+
+<h2>Result</h2>
+
+<table>
+  <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
+  <tbody>
+    <tr><td>Must-fall-back cases caught statically</td>
+      <td class="mono">9 / 14 &nbsp;(64%)</td><td class="mono acid">12 / 13 &nbsp;(92%)</td></tr>
+    <tr><td>Wasted transpiles</td><td class="mono">3</td><td class="mono acid">0</td></tr>
+    <tr><td>Filter cost, median</td><td class="mono">77 µs</td><td class="mono">~100 µs</td></tr>
+  </tbody>
+</table>
+
+<p>The filter got about 30% more expensive and it is still four orders of
+magnitude cheaper than the thing it is protecting. The one case it does not
+catch cannot be caught statically at all: whether a compile pays depends on
+whether the argument arrives as a <code class="inl">list</code> or a numpy
+array, and that is a runtime fact. <a href="/research/the-copy-nobody-needed">The
+next post</a> is about what we found when we chased it.</p>
+
+<h2>What the exercise actually taught</h2>
+
+<p>Not the individual rules — those are ten lines each. It is that this class of
+bug is invisible to unit tests of the transpiler, which had thirty passing ones.
+The tiered design is <em>built</em> to swallow failures: anything that does not
+compile falls back to CPython and returns the right answer, so a function that
+should have been 300x and is 1x looks exactly like a function that was never
+eligible. Nothing is red. Nothing is slow enough to notice.</p>
+
+<p>What found these was running realistic code end to end and reading what each
+stage said about it — and then writing the labels down, so the next change has
+something to be wrong against.</p>
+
+<div class="takeaway">
+<b>A fallback that hides failures needs something else watching them.</b> If your
+system is designed to degrade quietly, quiet is not evidence that it is working.
+</div>
+
+<h2>Reproducing</h2>
+
+<pre data-lang="bash"># the corpus, the stage-by-stage verdicts, and the disagreements
+bench/run.sh bench/fallback_study.py
+
+# plus real compiles and both tiers timed (slow: ~5s per eligible case)
+bench/run.sh bench/fallback_study.py --compile
+
+# the argument-shape measurements behind the next post
+bench/run.sh bench/fallback_study.py --crossover --opsweep --copyback</pre>
+
+<p class="dim repro">The filter itself is
+<code class="inl">runner/accel.py</code>; each rule above is pinned by a named
+test in <code class="inl">runner/tests/test_runner.py</code>, including one that
+asserts every <code class="inl">native</code>-labelled case in the corpus still
+passes — the point is not to lose the 38x–423x kernels while tightening.</p>
+
+{{template "postfoot" .}}

@@ -1,0 +1,85 @@
+{{template "head" .}}
+
+<h1>Cloud</h1>
+<p class="lede">Deploy sites, upload assets, and manage compute and storage from one account.</p>
+
+{{if .User}}
+<div id="cloud-app">
+  <style>#cloud-app label{display:block;margin:10px 0;color:var(--dim)}#cloud-app input,#cloud-app select{width:100%;margin-top:5px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px}#cloud-app form .btn{margin-top:8px}</style>
+  <div class="grid3">
+    <form class="panel" id="project-form">
+      <h3 style="margin-top:0">New project</h3>
+      <label>Name<br><input name="name" required maxlength="80" placeholder="Fractal explorer"></label>
+      <label>Runtime<br><select name="runtime"><option value="static">Static site</option><option value="mojo">Mojo project</option></select></label>
+      <button class="btn" type="submit">Create project</button>
+    </form>
+    <form class="panel" id="deploy-form">
+      <h3 style="margin-top:0">Deploy ZIP</h3>
+      <label>Project<br><select name="project_id" class="project-select" required></select></label>
+      <label>Bundle<br><input type="file" name="bundle" accept=".zip,application/zip" required></label>
+      <button class="btn" type="submit">Deploy</button>
+    </form>
+    <form class="panel" id="asset-form">
+      <h3 style="margin-top:0">Upload asset</h3>
+      <label>Attach to project<br><select name="project_id" class="project-select"><option value="">Account storage</option></select></label>
+      <label>Local file<br><input type="file" name="asset" required></label>
+      <button class="btn" type="submit">Upload</button>
+    </form>
+  </div>
+  <p id="cloud-status" class="dim" role="status"></p>
+
+  <h2>Projects</h2>
+  <div id="project-list" class="grid2"><div class="panel dim">Loading projects…</div></div>
+
+  <h2 id="storage">Storage</h2>
+  <div class="panel">
+    <div class="row" style="margin-top:0"><b id="storage-used">Loading…</b><span class="dim" id="storage-price"></span></div>
+    <div id="asset-list" class="dim">Loading assets…</div>
+  </div>
+</div>
+<script src="/static/cloud.js" defer></script>
+{{else}}
+<div class="panel" style="max-width:620px">
+  <h2 style="margin-top:0">Start with one inline signup</h2>
+  <p class="dim">Your mojojojo account owns projects, deployments, object storage,
+  API keys, and compute credits. No separate cloud account or redirect.</p>
+  <div class="row"><a class="btn" href="/auth/signup?next=/cloud">Create account — $1 free</a>
+  <a class="btn ghost" href="/auth/login?next=/cloud">Sign in</a></div>
+</div>
+{{end}}
+
+<h2>Bundle format</h2>
+<pre data-lang="json"><code>{
+  "name": "my-app",
+  "runtime": "static",
+  "entrypoint": "index.html"
+}</code></pre>
+<p class="dim">Put this in <code class="inl">mojojojo.json</code> at the ZIP root.
+For a static app, include the entrypoint and every referenced asset. Archives are immutable;
+deploying again creates a new version and moves the project to it atomically.</p>
+
+<h2>Choose a compute lifecycle</h2>
+<div class="grid2">
+  <div class="panel">
+    <h3 class="acid">Scale to zero</h3>
+    <p>Declare Python or Mojo functions. Each request runs in isolation and is billed by its
+    measured milliseconds. There is no idle charge.</p>
+    <pre data-lang="json">"compute": {"mode":"scale-to-zero"}</pre>
+    <p class="dim">Available now. Best for APIs, jobs, webhooks, file tools, and managed room coordination.</p>
+  </div>
+  <div class="panel">
+    <h3>Persistent service</h3>
+    <p>Reserve a process for WebSockets, a warm model, in-memory state, or a long-running Mojo server.</p>
+    <pre data-lang="json">"compute": {"mode":"persistent","profile":"cpu-1","health_path":"/health"}</pre>
+    <p class="dim">Limited preview. Billed hourly while reserved, including idle time. Persistent manifests fail explicitly until capacity is enabled for the account.</p>
+  </div>
+</div>
+
+<h2>One platform, three building blocks</h2>
+<div class="grid3">
+  <div class="panel"><h3 class="acid">Projects</h3><p class="dim">Keep apps, deployments, data, and vector search together.</p></div>
+  <div class="panel"><h3 class="acid">Storage</h3><p class="dim">Host immutable sites, models, and user-uploaded assets.</p></div>
+  <div class="panel"><h3 class="acid">Compute</h3><p class="dim">Run Python and Mojo functions with usage-based billing.</p></div>
+</div>
+
+{{template "foot" .}}

@@ -1,0 +1,222 @@
+{{template "posthead" .}}
+
+<p>mojosub's lab notebook had a finding in it that we had stopped questioning:
+<em>list arguments make the compiled path lose.</em> A million-element
+<code class="inl">list[float]</code> has to be copied into a contiguous buffer to
+cross the C ABI, and for a cheap kernel that copy costs more than the native code
+saves. The recorded number was <code class="inl">dot</code> over 1e6 elements
+going from 36x faster on a numpy array to <b class="hot">3x slower</b> on a
+list.</p>
+
+<p>It was true. It was also, in more than half, our own fault.</p>
+
+<h2>Where the time went</h2>
+
+<p>Marshalling a sequence across the boundary is two copies, not one:</p>
+
+<pre data-lang="python">buf = array.array("d", obj)      # in:  boxed floats -> 64 contiguous bits
+addr, length = buf.buffer_info()
+result = fn(addr, length)         # the kernel
+obj[:] = buf.tolist()             # out: in case the kernel wrote to it</pre>
+
+<p>The copy <em>in</em> is unavoidable. A Python list is an array of pointers to
+individually allocated float objects; there is no address you can hand a
+compiled function. The copy <em>out</em> is a different matter. It exists because
+the kernel <em>might</em> have stored through the buffer — and for a reduction,
+it provably has not.</p>
+
+<p>And the transpiler already knows which, because it has just finished deciding
+what to emit. If it never generated a store through a parameter, nothing can have
+been written through it. That is a fact available for free, at transpile time,
+that was being thrown away.</p>
+
+<h2>Recording it</h2>
+
+<p>Each parameter a store was emitted for goes on the signature, and the runtime
+skips the write-back for the rest:</p>
+
+<pre data-lang="python">@dataclass
+class Signature:
+    name: str
+    params: list[tuple[str, Ty]]
+    ret: Ty
+    writes: frozenset[str] | None = None   # None means "not analysed"
+
+    def may_write(self, param: str) -> bool:
+        return self.writes is None or param in self.writes</pre>
+
+<p><code class="inl">None</code> having to mean "may write everything" is the
+important part: a hand-built signature must not silently lose a write-back. The
+default is the safe answer, and only an actual analysis can narrow it.</p>
+
+<h2>What it was worth</h2>
+
+<p>Same kernel, same lists, copy-back forced on and off:</p>
+
+<table>
+  <thead><tr><th>n</th><th>CPython</th><th>with copy back</th><th>without</th><th>saved</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">100,000</td><td class="mono">33.7 ms</td><td class="mono">21.3 ms</td><td class="mono acid">11.6 ms</td><td class="mono">45%</td></tr>
+    <tr><td class="mono">400,000</td><td class="mono">127.8 ms</td><td class="mono">101.1 ms</td><td class="mono acid">45.5 ms</td><td class="mono">55%</td></tr>
+    <tr><td class="mono">1,000,000</td><td class="mono">253.1 ms</td><td class="mono">259.0 ms</td><td class="mono acid">94.7 ms</td><td class="mono">63%</td></tr>
+  </tbody>
+</table>
+
+<p>Read the bottom row twice. 259 ms against CPython's 253 ms is the original
+finding — the compiler losing. Two thirds of it was a <code class="inl">tolist()</code>
+and a slice assignment undoing nothing.</p>
+
+<p>With it gone there is no size at which a list argument loses:</p>
+
+<table>
+  <thead><tr><th>n</th><th>list, before</th><th>list, after</th><th>numpy array</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">1,000</td><td class="mono">1.19x</td><td class="mono acid">2.24x</td><td class="mono">16.9x</td></tr>
+    <tr><td class="mono">10,000</td><td class="mono">2.07x</td><td class="mono acid">5.08x</td><td class="mono">179x</td></tr>
+    <tr><td class="mono">100,000</td><td class="mono">1.64x</td><td class="mono acid">1.93x</td><td class="mono">277x</td></tr>
+    <tr><td class="mono">400,000</td><td class="mono">1.01x</td><td class="mono acid">2.15x</td><td class="mono">336x</td></tr>
+    <tr><td class="mono">1,000,000</td><td class="mono hot">0.94x</td><td class="mono acid">2.25x</td><td class="mono">147x</td></tr>
+  </tbody>
+</table>
+
+<h2>The heuristic we then did not build</h2>
+
+<p>This measurement was supposed to feed a cost model. The plan was to predict,
+before spending five seconds of compiler, whether a call would be copy-dominated
+and lose — using the interpreted time the JIT has already measured and a copy
+cost per element, giving a <em>ceiling</em> on the achievable speedup so it could
+only ever reject a case that provably could not win.</p>
+
+<p>Then the copy-back fix removed the losses it was meant to avoid. A model whose
+job is to predict a 0.94x that no longer happens is a model with no job.</p>
+
+<p>So the finding was reported instead of acted on. The gap between a list and a
+buffer is still two orders of magnitude, and unlike everything else in the
+pipeline it is <b>the caller's to close</b>. mojosub counts the elements it had
+to copy, and a run says so:</p>
+
+<pre data-lang="json">{"accel": {"native_calls": 2, "hints": [
+  "dot() copied 800,000 elements across the native boundary because a, b
+   arrived as Python lists. Passing numpy arrays (or array.array('d', ...))
+   hands them over by address instead — measured up to 100x faster on the
+   same kernel."]}}</pre>
+
+<div class="takeaway">
+<b>Prefer telling the user over outsmarting them</b> when the fix is theirs and
+worth 100x. A cost model that quietly declines to compile would have hidden a
+two-orders-of-magnitude improvement behind a decision they never saw.
+</div>
+
+<h2>Escape analysis stops early on purpose</h2>
+
+<p>A buffer handed to a helper is assumed written, whatever the helper does with
+it. Following it properly is a real escape analysis, and the failure mode of
+getting that wrong is not a slow program — it is a silently stale array in the
+caller's hands. So the conservative case keeps a copy back it may not need, and
+the aggressive case does not exist yet.</p>
+
+<h2>Three bugs in a variance</h2>
+
+<p>The same corpus run turned up something worse, by the crude method of reading
+what the compiler said instead of only whether it succeeded. This is ordinary
+statistics code:</p>
+
+<pre data-lang="python">def variance(xs) -> float:
+    total = 0.0
+    for i in range(len(xs)):
+        total += xs[i]
+    mean = total / len(xs)
+    var = 0.0                 # <- 1
+    for i in range(len(xs)):
+        fn = xs[i] - mean     # <- 2
+        var += fn * fn
+    return var / len(xs)</pre>
+
+<p>It emitted this:</p>
+
+<pre data-lang="python">var var: Float64 = 0.0
+var fn: Float64 = 0.0</pre>
+
+<p><code class="inl">var</code> and <code class="inl">fn</code> are reserved
+words in Mojo and perfectly ordinary names in Python. So do
+<code class="inl">alias</code>, <code class="inl">struct</code>,
+<code class="inl">ref</code>, <code class="inl">owned</code> and
+<code class="inl">inout</code>. Naming a variance <code class="inl">var</code> is
+not exotic — and the cost of it was five seconds of host compiler per
+submission, for ever, with the kernel silently staying interpreted, because a
+failed build is precisely what the tiered design is built to shrug off.</p>
+
+<p>The third bug is the one that should worry you:</p>
+
+<pre data-lang="python">def count_above(xs, cut: float) -> float:
+    xs_len = 3.0          # the user's own variable
+    ...
+    for i in range(len(xs)):   # len(xs) emits `xs_len`
+        ...</pre>
+
+<p><code class="inl">xs_len</code> is the parameter we synthesise for a buffer's
+length. A program with its own variable of that name reassigned it, so every
+later <code class="inl">len(xs)</code> returned <code class="inl">3</code>. Not a
+crash, not a compile error: <b class="hot">a wrong answer</b>, silently, in
+whatever direction the collision happened to point.</p>
+
+<h3>The fix is not a keyword list</h3>
+
+<p>Blacklisting Mojo's reserved words is a race against a language still adding
+them, and it would not have caught <code class="inl">xs_len</code> at all. Two
+namespaces instead: every user identifier is emitted with a
+<code class="inl">u_</code> prefix, every synthesised length with
+<code class="inl">n_</code>.</p>
+
+<pre data-lang="python">def u_variance(u_xs: UnsafePointer[Float64, AnyOrigin[mut=True]], n_xs: Int) -> Float64:
+    var u_var: Float64 = 0.0
+    var u_fn: Float64 = 0.0
+    ...</pre>
+
+<p>Both maps are injective and their images are disjoint, so no user name can
+collide with a keyword, with a generated length, or with another user name —
+including a program that has both <code class="inl">xs</code> and
+<code class="inl">xs_len</code>, which a suffix scheme cannot handle at all.
+Generated temporaries keep leading underscores and live in neither namespace.
+The exported symbol keeps the Python name, because that is a string the runtime
+looks up, not an identifier.</p>
+
+<p>One kernel in the corpus — a rolling Sharpe ratio, which computes a variance,
+which calls it <code class="inl">var</code> — went from <em>never compiling</em>
+to <b class="acid">423x</b> (3597 ms → 8.5 ms).</p>
+
+<h2>And a bug that only exists at fleet scale</h2>
+
+<p>While measuring vector widths we read this in <code class="inl">mojo build --help</code>:</p>
+
+<blockquote><code class="inl">--target-cpu &lt;CPU&gt;</code> — Sets the
+compilation target CPU. <b>Defaults to the host CPU.</b></blockquote>
+
+<p>The compile cache is content-addressed on the Mojo source, the compiler
+version and the optimization level. Not the machine. On one box that is
+invisible. But this service spills over onto rented capacity and the cache syncs
+between machines through an object store — so a unit built where AVX-512 exists
+and <code class="inl">dlopen</code>ed where it does not will load fine, run
+fine, and die on the first vector instruction it was compiled to use.</p>
+
+<p>The host's CPU <em>feature flags</em> are now part of the key — the flags
+rather than the model name, because the same model number ships with features
+fused off. Machines that can run each other's code still share cache entries;
+machines that cannot get their own, which is what they always needed. Nobody had
+hit it, which is the only good thing about it.</p>
+
+<h2>Reproducing</h2>
+
+<pre data-lang="bash">bench/run.sh bench/fallback_study.py --copyback     # the write-back saving
+bench/run.sh bench/fallback_study.py --crossover    # list vs array, by size
+bench/run.sh bench/fallback_study.py --opsweep      # arithmetic per element</pre>
+
+<p class="dim repro">The namespacing is in
+<code class="inl">mojosub/transpile.py</code>, the write-back elimination spans
+<code class="inl">transpile.py</code> and <code class="inl">runtime.py</code>, and
+the cache key is in <code class="inl">mojosub/cache.py</code>. Each has a named
+regression test in <code class="inl">tests/test_transpile.py</code> — including
+one asserting a read-only list argument comes back <em>unmodified</em>, since
+that is the only thing skipping the copy risks.</p>
+
+{{template "postfoot" .}}

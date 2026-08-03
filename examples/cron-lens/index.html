@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Cron Lens — see the next run</title><link rel="stylesheet" href="app.css"></head>
+<body><main><header><p class="eyebrow">SCHEDULE DEBUGGER</p><h1>Time is a production dependency.</h1><p>See the next twelve runs before your cron expression ships.</p></header><section class="controls"><label>Cron expression<input id="expression" value="*/15 9-17 * * mon-fri" spellcheck="false"></label><label>Time zone<input id="timezone" value="UTC" list="zones"><datalist id="zones"><option>UTC</option><option>America/New_York</option><option>America/Los_Angeles</option><option>Europe/London</option><option>Europe/Berlin</option><option>Asia/Tokyo</option><option>Australia/Sydney</option></datalist></label><button id="expand">Show next runs</button><p id="status">No guessing. Expand it.</p></section><section class="timeline" id="timeline"><div class="empty">12 future timestamps will appear here.</div></section></main><script src="app.js"></script></body>
+</html>

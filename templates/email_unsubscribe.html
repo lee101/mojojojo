@@ -1,0 +1,24 @@
+{{template "head" .}}
+
+<main style="max-width:650px;margin:54px auto">
+  <p class="dim mono">EMAIL</p>
+  <h1 style="font-size:clamp(32px,5vw,46px)">{{if .Saved}}You are unsubscribed.{{else if .Invalid}}That link is not valid.{{else}}Stop product emails?{{end}}</h1>
+  {{if .Saved}}
+    <p class="lede">The mojojojo product and open-source introduction has been
+    turned off. Essential account and billing messages are not affected.</p>
+    <p><a href="/">Return to mojojojo</a></p>
+  {{else if .Invalid}}
+    <p class="lede">The unsubscribe link is missing, expired, or malformed. If
+    you have an account, sign in and use Email preferences.</p>
+    <p><a class="btn" href="/email/preferences">Open email preferences</a></p>
+  {{else}}
+    <p class="lede">This stops the six-part mojojojo product and open-source
+    introduction. Essential account and billing messages are separate.</p>
+    <form method="post" action="/email/unsubscribe?token={{urlquery .Token}}">
+      <input type="hidden" name="token" value="{{.Token}}">
+      <button class="btn" type="submit">Unsubscribe</button>
+    </form>
+  {{end}}
+</main>
+
+{{template "foot" .}}

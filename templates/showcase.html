@@ -1,0 +1,40 @@
+{{template "head" .}}
+<main class="showcase" data-category="{{.Category}}">
+  <section class="showcase-hero">
+    <p class="eyebrow mono">COMMUNITY / {{if eq .Category "tool"}}TOOLS{{else}}APPS{{end}}</p>
+    <h1>{{.Title}}</h1>
+    <p class="lede">{{.Description}}</p>
+    <div class="row"><a class="btn" href="/studio?kind={{.Category}}">Create {{if eq .Category "app"}}an{{else}}a{{end}} {{.Category}}</a>{{if eq .Category "tool"}}<a class="btn ghost" href="/apps">Browse apps</a>{{else}}<a class="btn ghost" href="/tools">Browse tools</a>{{end}}</div>
+  </section>
+  <div class="showcase-controls"><input id="showcase-search" placeholder="Search names, tags, or authors"><span id="showcase-count" class="dim"></span></div>
+  <section class="showcase-grid" id="showcase-grid" aria-live="polite"></section>
+  <section class="submit-callout panel"><div><h2>Made something worth sharing?</h2><p class="dim">Publish from Studio, then submit it. Every listing is reviewed before it appears here; your source stays yours unless you choose to link it.</p></div><a class="btn" href="/studio">Open Studio</a></section>
+</main>
+<style>
+.showcase-hero{padding:45px 0 22px;max-width:760px}.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--acid)}
+.showcase-controls{display:flex;gap:12px;align-items:center;margin:22px 0}.showcase-controls input{flex:1;max-width:420px;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font:14px var(--mono)}
+.showcase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.app-card{display:flex;flex-direction:column;min-height:225px;padding:19px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(160deg,var(--panel),var(--surface));transition:.15s transform,.15s border-color}.app-card:hover{transform:translateY(-2px);border-color:var(--grape)}.app-card h2{font-size:20px;margin:.35em 0}.app-card p{margin:.3em 0}.app-card .card-actions{margin-top:auto;display:flex;gap:12px}.tag-row{display:flex;gap:5px;flex-wrap:wrap}.tag-row span{font:10px var(--mono);padding:2px 6px;border:1px solid var(--line);border-radius:999px;color:var(--dim)}.featured{font:10px var(--mono);color:var(--acid);letter-spacing:.08em}.submit-callout{margin-top:45px;display:flex;align-items:center;justify-content:space-between;gap:20px}.submit-callout h2{margin:.2em 0}
+@media(max-width:800px){.showcase-grid{grid-template-columns:1fr 1fr}}@media(max-width:540px){.showcase-grid{grid-template-columns:1fr}.submit-callout{align-items:flex-start;flex-direction:column}}
+</style>
+<script>
+const category=document.querySelector('.showcase').dataset.category;
+const starters=[
+ {name:'Streaming Snake',description:'Invite friends with a room code; a Python function brokers WebRTC, then gameplay streams peer-to-peer.',category:'app',tags:['multiplayer','webrtc','python'],template:'snake',featured:true},
+ {name:'PNG → WebP',description:'Private, browser-first image conversion with adjustable quality.',category:'tool',tags:['images','converter'],template:'png-webp',featured:true},
+ {name:'JSON → CSV',description:'A local converter with a Python serverless path for larger workflows.',category:'tool',tags:['data','python'],template:'json-csv',featured:true},
+ {name:'Markdown cleaner',description:'Turn portable Markdown into clean text through a tiny Python function.',category:'tool',tags:['markdown','text'],template:'markdown'},
+ {name:'Text case + slug',description:'Uppercase, lowercase, title-case, or slugify text entirely in the browser.',category:'tool',tags:['text','converter'],template:'text-case'},
+ {name:'Base64 + UTF-8',description:'Encode and decode Unicode text without sending it to a server.',category:'tool',tags:['developer','encoding'],template:'base64'},
+ {name:'Color converter',description:'Move between HEX, RGB, and HSL while previewing the result live.',category:'tool',tags:['design','css'],template:'color'},
+ {name:'Mojo function starter',description:'A complete website calling a compiled Mojo serverless function.',category:'app',tags:['mojo','serverless'],template:'mojo-text',featured:true},
+ {name:'QR Forge',description:'Turn links, Wi-Fi credentials, and contact details into downloadable SVG QR codes.',category:'tool',tags:['qr','svg','mojo'],example:'qr-forge',source:'https://github.com/lee101/mojojojo-qr-forge',featured:true},
+ {name:'Cron Lens',description:'See the next twelve real run times for a cron expression in any time zone.',category:'tool',tags:['cron','timezone','developer'],example:'cron-lens',source:'https://github.com/lee101/mojojojo-cron-lens'},
+ {name:'Phone Passport',description:'Normalize a messy global phone list to E.164 with region and validity data.',category:'tool',tags:['phone','contacts','data'],example:'phone-passport',source:'https://github.com/lee101/mojojojo-phone-passport'},
+ {name:'Photo Twin',description:'Use perceptual hashes to spot resized or recompressed copies of the same photo.',category:'tool',tags:['images','dedupe','mojo'],example:'photo-twin',source:'https://github.com/lee101/mojojojo-photo-twin',featured:true},
+ {name:'Fractal explorer',description:'Interactive canvas rendering backed by a multi-file Mojo implementation.',category:'app',tags:['graphics','mojo'],url:'/examples/source/mojojojo-fractal/index.html',source:'/examples/source/mojojojo-fractal/README.md'},
+ {name:'Tiny style transfer',description:'An ONNX image transform with the model shipped as a normal project asset.',category:'app',tags:['onnx','images'],url:'/examples/source/mojojojo-style-transfer/index.html',source:'/examples/source/mojojojo-style-transfer/README.md'}
+];let items=[];
+function render(){const q=document.querySelector('#showcase-search').value.toLowerCase();const shown=items.filter(x=>!q||[x.name,x.description,x.author,...(x.tags||[])].join(' ').toLowerCase().includes(q));document.querySelector('#showcase-count').textContent=`${shown.length} ${category}${shown.length===1?'':'s'}`;document.querySelector('#showcase-grid').replaceChildren(...shown.map(item=>{const card=document.createElement('article');card.className='app-card';const open=item.url||(item.example?`/studio?example=${encodeURIComponent(item.example)}&kind=${category}`:`/studio?template=${encodeURIComponent(item.template)}&kind=${category}`);card.innerHTML=`${item.featured?'<span class="featured">FEATURED</span>':''}<div class="tag-row">${(item.tags||[]).map(t=>`<span>${t}</span>`).join('')}</div><h2></h2><p class="dim description"></p>${item.author?`<p class="mono dim">by ${item.author}</p>`:''}<div class="card-actions"><a href="${open}">${item.url?'Open':'Open in Studio'} →</a>${item.source?`<a href="${item.source}">Source</a>`:''}</div>`;card.querySelector('h2').textContent=item.name;card.querySelector('.description').textContent=item.description||'';return card}))}
+async function load(){items=starters.filter(x=>x.category===category);try{const response=await fetch(`/v1/showcase?category=${category}`),data=await response.json();if(response.ok)items=[...data.items,...items]}catch{}render()}document.querySelector('#showcase-search').addEventListener('input',render);load();
+</script>
+{{template "foot" .}}

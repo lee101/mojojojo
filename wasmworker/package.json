@@ -1,0 +1,12 @@
+{
+  "name": "mojojojo-edge",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --local",
+    "test": "node --test test/edge.test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "^4" }
+}

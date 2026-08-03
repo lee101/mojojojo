@@ -1,0 +1,276 @@
+#!/bin/sh
+# mojojail — the only thing mojojojo runs as root, and all it does with that is
+# give privilege away.
+#
+# Installed by deploy.sh to /usr/local/bin/mojojail, owned root:root mode 0755,
+# reachable through one sudoers rule. It must NOT live inside the repo — the
+# service user can write there, and a writable root-run script is a root shell.
+#
+#   mojojail <timeout_seconds> [--work <run_dir>] <command> [args...]
+#   mojojail --reap-run  <run_id_hex>
+#   mojojail --reap-slot <socket_name>
+#   mojojail --reap-pid  <pid>
+#
+# What the program on the other side of this script can see:
+#
+#   * its own processes only          (PID namespace, fresh /proc)
+#   * no network at all               (network namespace, no interfaces)
+#   * a filesystem with /home, /root, /sdb-disk, /var, /opt and everything
+#     under /nvme0n1-disk replaced by empty read-only mounts, except the few
+#     paths it genuinely needs, which are re-bound read-only
+#   * its own run directory, writable, and a private /tmp
+#   * the unprivileged `mojorun` uid, with no-new-privs set
+#
+# The mount work matters more than it looks: without it a program could read
+# any world-readable file on the box, and this box has app.nz's session and
+# billing database sitting at /nvme0n1-disk/data/appnz-sso.db. That was a real
+# finding from runner/tests/test_security.py, not a hypothetical.
+set -eu
+
+RUN_USER=mojorun
+
+die() { echo "mojojail: $1" >&2; exit 2; }
+
+# --- reaping -------------------------------------------------------------
+# All three forms may only ever signal processes owned by the sandbox user.
+
+if [ "${1-}" = "--reap-pid" ]; then
+    pid=${2-}
+    case "$pid" in '' | *[!0-9]* ) die "pid must be a number" ;; esac
+    [ "$pid" -gt 1 ] || die "refusing to signal pid $pid"
+    owner=$(ps -o user= -p "$pid" 2>/dev/null | tr -d ' ')
+    [ "$owner" = "$RUN_USER" ] || die "pid $pid is not a sandbox process"
+    kill -9 "$pid" 2>/dev/null || true
+    exit 0
+fi
+
+if [ "${1-}" = "--reap-run" ]; then
+    run_id=${2-}
+    case "$run_id" in '' | *[!0-9a-f]* ) die "run id must be lowercase hex" ;; esac
+    [ ${#run_id} -ge 8 ] || die "run id too short"
+    pkill -9 -u "$RUN_USER" -f "$run_id" || true
+    exit 0
+fi
+
+if [ "${1-}" = "--reap-slot" ]; then
+    # A warm slot is PID 1 of its own namespace, so killing it takes its
+    # children with it. Matched on the socket name, which is 32 random hex.
+    slot=${2-}
+    case "$slot" in '' | *[!0-9a-f]* ) die "slot must be lowercase hex" ;; esac
+    [ ${#slot} -ge 8 ] || die "slot id too short"
+    pkill -9 -u "$RUN_USER" -f "$slot" || true
+    exit 0
+fi
+
+# --- running -------------------------------------------------------------
+
+secs=${1-}
+case "$secs" in '' | *[!0-9]* ) die "timeout must be an integer number of seconds" ;; esac
+# The upper bound covers pool slots, which are long-lived warm interpreters
+# rather than user runs; a user run is capped far below this by the worker.
+[ "$secs" -ge 1 ] && [ "$secs" -le 86400 ] || die "timeout out of range"
+shift
+
+# The run directory, which is the one place inside the hidden trees that has to
+# stay writable. Validated here rather than trusted: it must be a real
+# directory under the runs root with a hex name, so this cannot be turned into
+# "re-expose an arbitrary path".
+#
+# --ports names the Mojo library ports this run may see. Binding all of them
+# costs three mount syscalls each and there are ~175 of them: 2.3 seconds of
+# kernel time on the latency path of every cold run, for directories almost no
+# run imports. The names are filtered to the same `/nvme0n1-disk/code/mojo-*`
+# set the script would otherwise bind wholesale, so this narrows what a run can
+# see and never widens it. `--ports all` is the old behaviour and is what a
+# long-lived pool slot asks for, because it must be able to serve any run.
+WORK=""
+PORTS=""
+while [ $# -gt 0 ]; do
+    case "${1-}" in
+    --work)
+        WORK=${2-}
+        shift 2
+        case "$WORK" in
+            /nvme0n1-disk/data/mojojojo/runs/*) ;;
+            *) die "work directory must be under the runs root" ;;
+        esac
+        name=${WORK##*/}
+        case "$name" in '' | *[!0-9a-f]* ) die "work directory must be hex-named" ;; esac
+        [ -d "$WORK" ] || die "work directory does not exist"
+        ;;
+    --ports)
+        PORTS=${2-}
+        shift 2
+        case "$PORTS" in *[!A-Za-z0-9._,-]* ) die "port list must be names" ;; esac
+        ;;
+    *) break ;;
+    esac
+done
+
+[ $# -ge 1 ] || die "no command"
+
+# Paths the sandbox must still be able to read. Everything else under the
+# hidden trees disappears. Keep this list short and keep it here: it is the
+# allowlist, and it is only trustworthy while it lives in the root-owned file.
+#
+# The mojosub *package*, not the mojosub repository. Binding the whole checkout
+# put `.pixi/envs/default/bin/mojo` inside the sandbox — a working compiler,
+# reachable and runnable, in the one place the design says there is no compiler.
+# The package is what a run imports; the lib directory next to it is what a
+# compiled Mojo binary links against at runtime, and holds no executables.
+READABLE="/nvme0n1-disk/code/mojosub/mojosub
+/nvme0n1-disk/code/mojosub/.pixi/envs/default/lib
+/nvme0n1-disk/code/mojojojo/runner
+/nvme0n1-disk/data/mojojojo/envs
+/nvme0n1-disk/data/mojojojo/python"
+
+# Writable: the pool socket directory (a warm slot creates its socket at
+# startup) and the runs root. Nothing else.
+#
+# The runs root has to be here rather than only the one run directory, because
+# a warm slot establishes its namespace *before* the runs it will serve exist —
+# a per-run bind would be invisible to it. What keeps one run out of another is
+# the same thing as on the host: the directory is mode 0733, so it can be
+# traversed and not listed, and run directories are named with 32 random hex
+# digits. The bind preserves those permissions.
+WRITABLE="/nvme0n1-disk/data/mojojojo/pool
+/nvme0n1-disk/data/mojojojo/runs"
+
+# The ported Mojo libraries (../mojo-*). Public source, no secrets, and a run
+# only reaches them when the worker puts one on its PYTHONPATH — so only the
+# ones it was asked for are bound. Each one costs three mount syscalls.
+if [ "$PORTS" = "all" ]; then
+    for port in /nvme0n1-disk/code/mojo-*; do
+        [ -d "$port/python" ] && READABLE="$READABLE
+$port"
+    done
+elif [ -n "$PORTS" ]; then
+    OLDIFS=$IFS
+    IFS=,
+    for name in $PORTS; do
+        IFS=$OLDIFS
+        # Only ever a `mojo-*` directory name, never a path: the point of the
+        # option is to bind fewer of the same set, not a different set.
+        case "$name" in
+            mojo-*) ;;
+            *) die "not a port name: $name" ;;
+        esac
+        case "$name" in *..* | */* ) die "not a port name: $name" ;; esac
+        [ -d "/nvme0n1-disk/code/$name/python" ] && READABLE="$READABLE
+/nvme0n1-disk/code/$name"
+        IFS=,
+    done
+    IFS=$OLDIFS
+fi
+
+# MOJOJAIL_MOUNTS=0 skips the filesystem work. It exists for debugging a
+# breakage inside the jail; it is not a supported way to run this service, and
+# the worker reports `isolated` on the strength of this script existing, so
+# turning it off is a decision someone has to make by hand on the host.
+if [ "${MOJOJAIL_MOUNTS-1}" = "0" ]; then
+    exec /usr/bin/unshare --net --pid --fork --mount-proc \
+         /usr/bin/setpriv --reuid "$RUN_USER" --regid "$RUN_USER" \
+            --init-groups --no-new-privs -- \
+         /usr/bin/timeout -s KILL "$secs" "$@"
+fi
+
+exec /usr/bin/unshare --mount --net --pid --fork --mount-proc \
+     /bin/sh -c '
+set -eu
+secs=$1; shift
+readable=$1; shift
+writable=$1; shift
+work=$1; shift
+
+# Nothing this namespace does may propagate back to the host.
+mount --make-rprivate / 2>/dev/null || true
+
+# Stage the paths we intend to keep BEFORE hiding their parents. Binding a
+# path onto itself after its parent has been overmounted binds the empty
+# replacement, not the real directory — which looks like it worked and leaves
+# the sandbox with no interpreter.
+stage=/run/mojojail.$$
+mkdir -p "$stage"
+mount -t tmpfs -o size=1m,mode=700 mojojail-stage "$stage"
+
+i=0
+kept=""
+writable_kept=""
+for path in $readable; do
+    [ -d "$path" ] || continue
+    i=$((i + 1))
+    mkdir -p "$stage/$i"
+    if mount --bind "$path" "$stage/$i" 2>/dev/null; then
+        kept="$kept $i:$path"
+    fi
+done
+for path in $writable; do
+    [ -d "$path" ] || continue
+    i=$((i + 1))
+    mkdir -p "$stage/$i"
+    if mount --bind "$path" "$stage/$i" 2>/dev/null; then
+        writable_kept="$writable_kept $i:$path"
+    fi
+done
+if [ -n "$work" ] && [ -d "$work" ]; then
+    mkdir -p "$stage/work"
+    mount --bind "$work" "$stage/work" 2>/dev/null || true
+fi
+
+# mode 000 hides a tree outright; mode 0111 hides its contents while still
+# allowing traversal into an allowlisted path underneath.
+hide() {
+    [ -d "$1" ] || return 0
+    mount -t tmpfs -o "size=1m,mode=${2:-000}" mojojail-hidden "$1" 2>/dev/null || true
+}
+
+# Homes hold ~/.secretbashrc, ~/.aws and every other credential on this box;
+# /nvme0n1-disk/data holds app.nz'"'"'s session and billing database; /sdb-disk holds every other
+# project'"'"'s working data.
+hide /home
+hide /root
+hide /sdb-disk
+hide /opt
+hide /srv
+hide /media
+hide /mnt
+hide /boot
+hide /var/log
+hide /nvme0n1-disk/code 0111
+hide /nvme0n1-disk/data 0111
+
+# ...and now put back only what a run legitimately needs, read-only.
+for entry in $kept; do
+    n=${entry%%:*}
+    path=${entry#*:}
+    mkdir -p "$path" 2>/dev/null || continue
+    mount --bind "$stage/$n" "$path" 2>/dev/null || continue
+    mount -o remount,bind,ro "$path" 2>/dev/null || true
+done
+
+# The writable paths go back last, and are explicitly remounted rw: a bind
+# inherits the read-only flag of whatever it lands inside, which is how the run
+# directory ended up unwritable the first time this was built.
+for entry in $writable_kept; do
+    n=${entry%%:*}
+    path=${entry#*:}
+    mkdir -p "$path" 2>/dev/null || continue
+    mount --bind "$stage/$n" "$path" 2>/dev/null || continue
+    mount -o remount,bind,rw "$path" 2>/dev/null || true
+done
+if [ -n "$work" ]; then
+    mkdir -p "$work" 2>/dev/null || true
+    mount --bind "$stage/work" "$work" 2>/dev/null || true
+    mount -o remount,bind,rw "$work" 2>/dev/null || true
+fi
+
+# A private /tmp, so nothing a program leaves behind is visible to the next.
+mount -t tmpfs -o size=64m,mode=1777 mojojail-tmp /tmp 2>/dev/null || true
+# The staging area has done its job; the sandbox must not see it.
+umount -l "$stage" 2>/dev/null || true
+rmdir "$stage" 2>/dev/null || true
+
+exec /usr/bin/setpriv --reuid '"$RUN_USER"' --regid '"$RUN_USER"' \
+        --init-groups --no-new-privs -- \
+     /usr/bin/timeout -s KILL "$secs" "$@"
+' mojojail "$secs" "$READABLE" "$WRITABLE" "$WORK" "$@"

@@ -1,0 +1,217 @@
+{{template "posthead" .}}
+
+<p>mojosub compiles a <em>subset</em> of Python. That is not a temporary
+limitation, it is the design: a transpiler that only accepts typed numeric code
+can be a set of rules, and a set of rules can be trusted. The price is that it
+refuses most of what people write.</p>
+
+<p>So there are two ways to get a Python function into Mojo, and the interesting
+thing about them is not speed — it is <b>trust</b>.</p>
+
+<table>
+  <thead><tr><th></th><th>Transpiler</th><th>Coding agent</th></tr></thead>
+  <tbody>
+    <tr><td>Cost</td><td class="mono">~1 ms</td><td class="mono">minutes, and real money</td></tr>
+    <tr><td>Coverage</td><td>the numeric subset</td><td>anything it can write</td></tr>
+    <tr><td>Why you believe it</td><td>it followed a rule</td><td class="hot">no reason at all</td></tr>
+  </tbody>
+</table>
+
+<p>That last row is the whole problem. A generated <code class="inl">.mojo</code>
+file looks exactly as convincing whether it computes the right function or not,
+and "the agent said it was equivalent" is not evidence.</p>
+
+<div class="takeaway">
+<b>The agent is a generator, not an authority.</b> Its output goes through the
+same gate as everything else: it has to compile, it has to agree with CPython on
+generated inputs element by element, and it has to be measurably faster. Fail any
+one and the conversion is reported as failed.
+</div>
+
+<h2>The two tiers</h2>
+
+<pre data-lang="bash">bin/convert.py kernels.py              # both tiers
+bin/convert.py kernels.py --no-agent   # transpiler only, report what it refuses</pre>
+
+<p>Tier one is <a href="https://github.com/lee101/mojosub">mojosub</a>. When it
+accepts a function there is nothing to review. When it raises
+<code class="inl">Unsupported</code> it says exactly why, and that reason is the
+most valuable thing to hand the agent — it names the construct that has to go.</p>
+
+<p>Tier two hands the function to <code class="inl">codex</code> with three
+things: the refusal reason, the accumulated Mojo dialect notes, and the C ABI it
+must export, <em>spelled out character for character</em>:</p>
+
+<pre data-lang="mojo">@export("conv_median_abs_deviation")
+def conv_median_abs_deviation(xs_addr: Int, xs_len: Int) abi("C") -> Float64:</pre>
+
+<p>Written out rather than described, because the gate binds that symbol by name
+without asking the agent what it produced. An agent that is free to choose its own
+interface is an agent whose output you have to read before you can test it.</p>
+
+<h2>What the gate actually does</h2>
+
+<ol>
+  <li><b>Compile.</b> The agent's file, with the real compiler.</li>
+  <li><b>Bind.</b> <code class="inl">ctypes</code>, against the declared ABI. A
+  missing or misnamed symbol fails here.</li>
+  <li><b>Compare.</b> Six generated inputs, from different seeds. Return values
+  and <em>every buffer the function might have written</em>. A kernel that agrees
+  on the author's example and disagrees on a negative number is caught here.</li>
+  <li><b>Measure.</b> Below 1.5x CPython it is thrown away. A conversion that ties
+  is a second implementation to keep correct, for nothing.</li>
+</ol>
+
+<p>A failure at any stage goes back to the agent once, as text, because a dialect
+mistake is usually a one-line fix. Two failures and the function is reported
+unconverted. Nothing is accepted on the agent's say-so at any point.</p>
+
+<h3>Testing the gate itself</h3>
+
+<p>A gate nobody has checked is a gate you are trusting for the same reason you
+were not willing to trust the agent. So: take the conversion it accepted, change
+one index — <code class="inl">xs_len // 2</code> to
+<code class="inl">xs_len // 2 + 1</code> — and run it through again.</p>
+
+<pre data-lang="bash">agent's own file             -> GATE ACCEPTS
+corrupted by one index       -> GATE REJECTS: disagrees on seed 0:
+                                python=1.9577175 mojo=1.9536765</pre>
+
+<p>Rejected on the first seed, on a difference in the third decimal place. That
+is the whole argument for generated inputs over an example: nobody eyeballing
+that Mojo would have caught it.</p>
+
+<h3>The buffers are the part people forget</h3>
+
+<p>Comparing return values is the obvious half. The half that catches real bugs is
+comparing the arguments afterwards: a kernel that writes through a buffer the
+Python function does not write to — or fails to write one it does — returns a
+perfectly correct number and leaves the caller with wrong data. Both tiers are
+checked for it.</p>
+
+<h2>Fuzzing the transpiler first</h2>
+
+<p>Before trusting tier one to be the trustworthy tier, it seemed worth asking
+whether it was. <code class="inl">bench/fuzz.py</code> generates random programs
+inside and just outside the subset — grammar-directed, because random bytes are
+rejected by <code class="inl">ast.parse</code> and test nothing — runs each under
+CPython and through the transpiler, and compares.</p>
+
+<p>Three of the first dozen programs found bugs. All three were the same root
+cause, and it is a good one:</p>
+
+<blockquote>Python scopes a local to its function. Mojo scopes a
+<code class="inl">var</code> to its block.</blockquote>
+
+<pre data-lang="python">def f(n: int) -> float:
+    n = n * 2              # 1. Mojo parameters are immutable bindings
+    total = 0.0
+    for i in range(n):
+        if i % 2 == 0:
+            hit = 1.5      # 2. `var hit` here is scoped to the `if`
+            total += hit
+    return total + hit     # ...and unknown here
+
+def g(n: int) -> float:
+    for i in range(n):
+        pass
+    return float(i)        # 3. Python leaves `i` bound; Mojo does not</pre>
+
+<p>Every one of those is ordinary Python. Every one of them emitted Mojo that did
+not compile. And in a service that falls back to CPython on a failed compile,
+<em>none of them looked like anything</em> — the program returned the right
+answer, slowly, for ever, and the only symptom was a compile that never
+succeeded.</p>
+
+<p>The fix is not three special cases. It is to emit declarations where Python
+puts them: all locals hoisted to the top of the function, a reassigned parameter
+copied into a mutable local, and a loop counter that outlives its loop driven by
+a generated iteration variable that copies into a hoisted one. Crashes across a
+60-program run went from 13 to 0 with no disagreements.</p>
+
+<p>One subtlety worth stating: hoisting is done only for the functions that need
+it. A hoisted declaration in every loop would rewrite every unit's content hash
+and invalidate a cache full of correct libraries for no benefit.</p>
+
+<h3>And one bug the converter itself surfaced</h3>
+
+<p>The first run of <code class="inl">convert.py</code> over a module reported
+<code class="inl">call to sorted</code> for every function in it — including
+functions with no <code class="inl">sorted</code> anywhere near them. A unit is
+emitted whole or not at all, and mojosub was putting <em>every annotated sibling
+function</em> into it. So one unrelated helper made the entire file
+uncompilable, and the reason it gave pointed at code that was not in the kernel.</p>
+
+<p>Its own docstring said "reachable from <code class="inl">entry</code>". The
+implementation did not compute reachability. It does now — transitively, since a
+helper's helpers are needed too.</p>
+
+<div class="takeaway">
+<b>Building the second tier is what found the bugs in the first.</b> Running the
+transpiler over whole modules rather than hand-picked kernels, and reading the
+reason it gave rather than only whether it succeeded, is what surfaced all of
+this. The tests passed throughout.
+</div>
+
+<h2>Results</h2>
+
+<p>A module of seven functions, deliberately mixed. Measured on the machine
+serving this page:</p>
+
+<table>
+  <thead><tr><th>function</th><th>route</th><th>vs CPython</th><th>why</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">rolling_sharpe</td><td class="acid">transpiler</td>
+      <td class="mono">88.3x</td><td class="dim">in the subset</td></tr>
+    <tr><td class="mono">ewma</td><td class="acid">transpiler</td>
+      <td class="mono">53.6x</td><td class="dim">in the subset</td></tr>
+    <tr><td class="mono">gram_diagonal</td><td class="acid">transpiler</td>
+      <td class="mono">39.2x</td><td class="dim">2-D buffer</td></tr>
+    <tr><td class="mono">run_length_max</td><td class="acid">transpiler</td>
+      <td class="mono">21.7x</td><td class="dim">integer loop</td></tr>
+    <tr><td class="mono">median_abs_deviation</td><td>agent</td>
+      <td class="mono">27.9x</td><td class="dim">needs a sort</td></tr>
+    <tr><td class="mono">top_k_mean</td><td>agent</td>
+      <td class="mono">24.3x</td><td class="dim">needs a heap</td></tr>
+    <tr><td class="mono">unique_count</td><td>agent</td>
+      <td class="mono">7.1x</td><td class="dim">needs a set</td></tr>
+  </tbody>
+</table>
+
+<p>The transpiler handles four of seven for a millisecond each and no review. The
+agent handles the rest for minutes each — and those three are exactly the
+functions where a human would have had to make a decision: quickselect or a full
+sort, a heap or a partial sort, a hash set or a bitmap. It chose quickselect,
+and the gate is what says the choice was implemented correctly.</p>
+
+<p>Two of the three needed the repair pass, and both for the same kind of reason:
+the first attempt at <code class="inl">median_abs_deviation</code> used
+<code class="inl">List[Float64]</code>, which did not compile against this
+toolchain, and the second used a raw allocation. That is exactly the class of
+mistake worth one retry and not worth a second full attempt — the algorithm was
+right the first time, the dialect was not.</p>
+
+<div class="takeaway">
+<b>The gate is the product, not the agent.</b> Everything interesting about this
+tool is in what it refuses to believe. Swap <code class="inl">codex</code> for any
+other agent and nothing about the guarantees changes, because none of them came
+from the agent.
+</div>
+
+<h2>What this is not</h2>
+
+<p>It is not a general Python-to-Mojo compiler and the agent tier does not make it
+one. Everything it converts still has to be a function with annotated numeric
+parameters and a scalar return, because that is what can be given a C ABI and
+tested against CPython automatically. A function that takes a DataFrame and
+returns a dict has nothing for the gate to check, and a conversion nothing can
+check is a conversion nobody should ship.</p>
+
+<p class="dim repro">The converter is
+<code class="inl">bin/convert.py</code> in the port factory, the fuzzer is
+<code class="inl">bench/fuzz.py</code> in mojosub, and every scoping fix above has
+a named regression test in <code class="inl">tests/test_transpile.py</code>. The
+factory that does the same thing at whole-library scale — 184 ports so far — is
+described in its own README.</p>
+
+{{template "postfoot" .}}

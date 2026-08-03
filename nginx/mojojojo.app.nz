@@ -1,0 +1,20 @@
+upstream mojojojo_backend {
+    server 127.0.0.1:4341;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name mojojojo.app.nz;
+
+    ssl_certificate /etc/nginx/ssl/app.nz.crt;
+    ssl_certificate_key /etc/nginx/ssl/app.nz.key;
+
+    # The old app.nz hostname is not an identity surface. All account and API
+    # traffic converges on the independent mojojojo.cc origin.
+    return 308 https://mojojojo.cc$request_uri;
+
+    access_log /var/log/nginx/mojojojo.app.nz.access.log;
+    error_log /var/log/nginx/mojojojo.app.nz.error.log;
+}

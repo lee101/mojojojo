@@ -1,0 +1,114 @@
+{{template "head" .}}
+
+<section class="agent-hero">
+  <div>
+    <p class="eyebrow">mjj · open-source coding agent</p>
+    <h1>Search the repository.<br>Not your token budget.</h1>
+    <p class="lede">A compact coding agent with bounded tools, hybrid disk
+    search, resumable sessions, and fast local code execution. Install one
+    binary or use the same agent inside the mojojojo editor.</p>
+    <div class="row">
+      <a class="btn" href="/editor">Try it in the browser</a>
+      <a class="btn ghost" href="https://github.com/lee101/mojojojo-agent">Read the source</a>
+    </div>
+  </div>
+  <div class="agent-terminal" aria-label="Example mjj session">
+    <div class="terminal-bar"><span></span><span></span><span></span><b>mjj</b></div>
+    <pre data-lang="shell"><code>$ mjj exec "fix the failing router test"
+
+search  router failure · 6 grounded hits
+read    tests/test_router.py:41
+patch   router.py  +4/-2
+shell   pytest -q
+
+Fixed the route precedence bug. 38 tests pass.</code></pre>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Install in one command</h2>
+  <p>Release binaries include the agent and its Python runtime. No system
+  Python, package manager, or administrator access is required.</p>
+  <div class="install-grid">
+    <article class="panel install-card">
+      <div class="platform"><b>Linux + macOS</b><span>x86_64 · ARM64</span></div>
+      <pre data-lang="shell"><code>curl -fsSL {{.Cfg.SiteBaseURL}}/install.sh | sh</code></pre>
+      <p class="dim">Installs to <code class="inl">~/.local/bin/mjj</code> and
+      verifies SHA-256 before replacing anything. Linux builds use an Ubuntu
+      22.04 glibc baseline.</p>
+    </article>
+    <article class="panel install-card">
+      <div class="platform"><b>Windows</b><span>x86_64 · PowerShell</span></div>
+      <pre data-lang="powershell"><code>irm {{.Cfg.SiteBaseURL}}/install.ps1 | iex</code></pre>
+      <p class="dim">Installs per-user under LocalAppData and adds the directory
+      to your user PATH.</p>
+    </article>
+  </div>
+  <details class="downloads">
+    <summary>Download a release archive directly</summary>
+    <div class="download-links">
+      <a href="{{.AgentReleaseBase}}/mjj-linux-x86_64.tar.gz">Linux x86_64</a>
+      <a href="{{.AgentReleaseBase}}/mjj-linux-aarch64.tar.gz">Linux ARM64</a>
+      <a href="{{.AgentReleaseBase}}/mjj-macos-x86_64.tar.gz">macOS Intel</a>
+      <a href="{{.AgentReleaseBase}}/mjj-macos-aarch64.tar.gz">macOS Apple silicon</a>
+      <a href="{{.AgentReleaseBase}}/mjj-windows-x86_64.zip">Windows x86_64</a>
+      <a href="{{.AgentReleaseBase}}/SHA256SUMS">SHA-256 checksums</a>
+    </div>
+  </details>
+</section>
+
+<h2>Spend computation on computation</h2>
+<div class="grid3 agent-features">
+  <article class="panel">
+    <p class="feature-mark">01</p>
+    <h3>Grounded disk search</h3>
+    <p>Fuses exact <code class="inl">rg</code> hits, lexical ranking, and
+    mojo-embed vectors into a few line-anchored results. It remains useful
+    without either optional native backend.</p>
+  </article>
+  <article class="panel">
+    <p class="feature-mark">02</p>
+    <h3>Fast internal execution</h3>
+    <p>Reasoning code can run in-process, through mojosub, in the local jail,
+    or on mojojojo. The safe available backend is selected at runtime.</p>
+  </article>
+  <article class="panel">
+    <p class="feature-mark">03</p>
+    <h3>Skills without prompt tax</h3>
+    <p>Project and user <code class="inl">SKILL.md</code> workflows are indexed
+    by metadata and loaded only when the task needs them.</p>
+  </article>
+</div>
+
+<section class="agent-steps">
+  <h2>Then point it at real work</h2>
+  <pre data-lang="shell"><code>mjj auth --probe
+cd your-project
+mjj exec "find the cause of the failing test and fix it"
+
+# token-efficient repository search is also a standalone tool
+mjj search "where are API retries handled?" src --stats</code></pre>
+  <p class="dim">The downloaded binaries are currently unsigned. macOS
+  Gatekeeper or Windows SmartScreen may ask you to confirm the first run.
+  Release archives and installers are always published with SHA-256 checksums.</p>
+</section>
+
+<style>
+.agent-hero{display:grid;grid-template-columns:1.08fr .92fr;gap:34px;align-items:center;padding:48px 0 36px}
+.eyebrow{font-family:var(--mono);color:var(--acid);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.agent-terminal{background:var(--code);border:1px solid var(--line-strong);border-radius:16px;overflow:hidden;box-shadow:0 26px 80px rgba(18,21,26,.28)}
+.agent-terminal pre{border:0;border-radius:0;margin:0;min-height:280px;padding-top:22px}
+.terminal-bar{height:40px;display:flex;align-items:center;gap:7px;padding:0 13px;border-bottom:1px solid var(--line);background:var(--surface)}
+.terminal-bar span{width:10px;height:10px;border-radius:50%;background:var(--hot)}
+.terminal-bar span:nth-child(2){background:var(--d-str)}.terminal-bar span:nth-child(3){background:var(--acid)}
+.terminal-bar b{margin-left:auto;margin-right:auto;color:var(--dim);font:12px var(--mono)}
+.install-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.install-card pre{margin-bottom:10px}
+.platform{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.platform span{font:12px var(--mono);color:var(--dim)}
+.downloads{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:12px 15px}.downloads summary{cursor:pointer;color:var(--soft)}
+.download-links{display:flex;gap:10px 18px;flex-wrap:wrap;padding-top:12px;font-size:14px}
+.feature-mark{font:12px var(--mono);color:var(--hot);margin:0}.agent-features h3{margin-top:8px}.agent-features p:last-child{color:var(--dim)}
+.agent-steps{max-width:760px}.agent-steps pre{margin-top:18px}
+@media(max-width:860px){.agent-hero,.install-grid{grid-template-columns:1fr}.agent-hero{padding-top:24px}.agent-terminal pre{min-height:0}}
+</style>
+
+{{template "foot" .}}

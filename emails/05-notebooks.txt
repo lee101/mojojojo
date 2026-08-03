@@ -1,0 +1,7 @@
+This is a preview, not a launch notice.
+
+Mojojojo Notebooks is being designed around reactive Markdown, Python, and Mojo cells. AI actions will propose a diff; they will not mutate or execute a cell until you apply it.
+
+Read the notebook boundary: {{.SiteBaseURL}}/research/notebooks-should-show-the-diff?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=notebooks
+
+Until the notebook slice passes its isolation, revision, renderer, and billing tests, Studio is the shipped browser workspace.

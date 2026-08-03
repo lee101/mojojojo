@@ -1,0 +1,56 @@
+[Unit]
+Description=mojojojo.cc — independent auth, billing, and execution control plane
+After=network.target postgresql.service mojojojo-runner.service mojojojo-vector.service
+Wants=mojojojo-runner.service mojojojo-vector.service
+
+[Service]
+Type=simple
+User=administrator
+WorkingDirectory=/nvme0n1-disk/code/mojojojo
+ExecStart=/nvme0n1-disk/code/mojojojo/mojojojo
+Environment=PORT=4341
+Environment=DEV=false
+Environment=SITE_BASE_URL=https://mojojojo.cc
+Environment=RUNNER_URL=http://127.0.0.1:4342
+Environment=VECTOR_URL=http://127.0.0.1:4344
+Environment=VECTOR_CONCURRENCY=8
+Environment=VECTOR_MAX_DOCUMENTS=250000
+Environment=VECTOR_CPU_QUERY_CREDITS=0.5
+Environment=VECTOR_GPU_QUERY_CREDITS=1.5
+Environment=VECTOR_UPSERT_CREDITS=0.02
+Environment=MJJ_AGENT_URL=http://127.0.0.1:4343
+Environment=MJJ_TOKENS_PER_CREDIT=1000
+# mojojojo owns this PostgreSQL database: users, password hashes, sessions,
+# API keys, credits, usage, and placement history all live here.
+Environment=MOJOJOJO_DATABASE_URL=postgres:///mojojojo?host=/var/run/postgresql&sslmode=disable
+# Price of compute. 1 credit = $0.001, so 10000 ms/credit is $0.36 per
+# core-hour and 2000 ms/credit is $1.80 per GPU-hour.
+Environment=MS_PER_CREDIT=10000
+Environment=MS_PER_CREDIT_GPU=2000
+# Server-side runs need a mojojojo account. The browser runtime (mojojojo.js)
+# stays free and unlimited without one, because it costs us nothing.
+Environment=ALLOW_ANONYMOUS=false
+# $1 of compute, once per account, on first run.
+Environment=WELCOME_CREDITS=1000
+# Overflow capacity. Providers are only built when their credentials exist, and
+# nothing is ever rented until SCALE_DRY_RUN=false is set deliberately.
+Environment=SCALE_DRY_RUN=true
+# GPU overflow is admitted only when the worker health response confirms the
+# real backend; CPU fallback workers never enter that pool.
+Environment=VECTOR_GPU_BACKEND_ENABLED=true
+# Customer assets and immutable sites are delivered only through the branded
+# static domain. Keep MOJOJOJO_STORAGE_SIGNING_KEY stable in secrets.env.
+Environment=MOJOJOJO_OBJECT_BUCKET=mojojojostatic
+Environment=MOJOJOJO_OBJECT_PREFIX=
+Environment=MOJOJOJO_STATIC_BASE=https://mojojojostatic.mojojojo.com
+Environment=MOJOJOJO_STORAGE_FREE_BYTES=1073741824
+Environment=MOJOJOJO_STORAGE_MAX_BYTES=107374182400
+Environment=MOJOJOJO_STORAGE_MAX_UPLOAD=67108864
+EnvironmentFile=-/nvme0n1-disk/data/mojojojo/secrets.env
+Restart=always
+RestartSec=3
+MemoryHigh=1G
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target

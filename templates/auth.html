@@ -1,0 +1,118 @@
+{{template "head" .}}
+<style>
+.auth-shell{max-width:860px;margin:42px auto 28px;display:grid;grid-template-columns:1fr minmax(340px,420px);
+  gap:54px;align-items:center}
+.auth-copy h1{font-size:clamp(36px,5vw,54px);margin:.16em 0 .28em}
+.auth-eyebrow{margin:0;color:var(--acid);font:700 12px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.auth-points{display:grid;gap:10px;margin:25px 0 0;padding:0;list-style:none;color:var(--dim);font-size:14px}
+.auth-points li{display:flex;gap:10px;align-items:flex-start}
+.auth-points li::before{content:"✓";color:var(--acid);font-weight:800}
+.auth-card{padding:26px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+  border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.22)}
+.auth-card-head{display:flex;justify-content:space-between;gap:14px;align-items:baseline;margin-bottom:21px}
+.auth-card-head h2{font-size:21px;margin:0}
+.auth-step{color:var(--dim);font:12px var(--mono)}
+.auth-error{margin:0 0 18px;border-color:var(--hot);color:var(--ink)}
+.auth-field{display:block;margin:0 0 17px;font-size:14px;font-weight:650}
+.auth-field input{display:block;width:100%;margin-top:7px;background:var(--code);color:var(--ink);border:1px solid var(--line);
+  border-radius:10px;padding:12px 13px;font:16px/1.3 inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+.auth-field input:hover{border-color:var(--line-strong)}
+.auth-field input:focus{border-color:var(--acid);box-shadow:0 0 0 3px rgba(var(--acid-rgb),.13)}
+.auth-password{position:relative;margin-top:7px}
+.auth-password input{margin-top:0;padding-right:68px}
+.auth-reveal{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:6px 7px;border:0;background:transparent;
+  color:var(--acid);font:700 12px var(--mono);cursor:pointer;border-radius:6px}
+.auth-reveal:hover,.auth-reveal:focus-visible{background:rgba(var(--acid-rgb),.1);outline:none}
+.auth-hint{display:block;margin-top:6px;color:var(--dim);font-size:12.5px;font-weight:400}
+.auth-updates{display:flex;gap:9px;align-items:flex-start;margin:-2px 0 17px;color:var(--dim);font-size:12.5px;line-height:1.45;cursor:pointer}
+.auth-updates input{margin-top:3px;accent-color:var(--acid)}
+.auth-submit{width:100%;margin-top:3px;padding:13px 18px}
+.auth-submit:disabled{cursor:wait;opacity:.72}
+.auth-switch{margin:18px 0 0;text-align:center;color:var(--dim);font-size:14px}
+.auth-trust{margin:20px 0 0;color:var(--dim);font-size:12.5px;text-align:center}
+@media(max-width:760px){.auth-shell{max-width:460px;grid-template-columns:1fr;gap:24px;margin:24px auto}.auth-copy{text-align:center}
+  .auth-copy .lede{margin-inline:auto}.auth-points{display:none}}
+</style>
+
+<main class="auth-shell">
+  <section class="auth-copy">
+    {{if eq .Mode "signup"}}
+      <p class="auth-eyebrow">One quick step</p>
+      <h1>Start building.</h1>
+      <p class="lede">Create your workspace and get $1 of compute to try mojojojo. No card required.</p>
+      <ul class="auth-points" aria-label="What your account includes">
+        <li>Run Python and Mojo in the browser or cloud</li>
+        <li>Keep projects, storage, usage, and API keys together</li>
+        <li>Continue straight to the editor after signup</li>
+      </ul>
+    {{else}}
+      <p class="auth-eyebrow">Welcome back</p>
+      <h1>Pick up where you left off.</h1>
+      <p class="lede">Sign in to your mojojojo.cc workspace.</p>
+    {{end}}
+  </section>
+
+  <section class="auth-card" aria-labelledby="auth-title">
+    <div class="auth-card-head">
+      <h2 id="auth-title">{{if eq .Mode "signup"}}Create your account{{else}}Sign in{{end}}</h2>
+      {{if eq .Mode "signup"}}<span class="auth-step">Step 1 of 1</span>{{end}}
+    </div>
+    {{if .Error}}<div id="auth-error" class="banner auth-error" role="alert">{{.Error}}</div>{{end}}
+    <form id="auth-form" method="post" action="/auth/{{.Mode}}">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="hidden" name="next" value="{{.Next}}">
+      <label class="auth-field" for="email">Email
+        <input id="email" name="email" type="email" value="{{.Email}}" autocomplete="email"
+          inputmode="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" required
+          {{if not .Email}}autofocus{{end}} {{if .Error}}aria-describedby="auth-error"{{end}}>
+      </label>
+      <label class="auth-field" for="password">Password
+        <span class="auth-password">
+          <input id="password" name="password" type="password"
+            autocomplete="{{if eq .Mode "signup"}}new-password{{else}}current-password{{end}}"
+            {{if eq .Mode "signup"}}minlength="{{.PasswordMin}}" aria-describedby="password-hint{{if .Error}} auth-error{{end}}"{{else}}{{if .Error}}aria-describedby="auth-error"{{end}}{{end}}
+            maxlength="{{.PasswordMax}}" required {{if .FocusPassword}}autofocus{{end}}>
+          <button class="auth-reveal" id="password-reveal" type="button" aria-controls="password" aria-pressed="false">Show</button>
+        </span>
+        {{if eq .Mode "signup"}}<span class="auth-hint" id="password-hint">At least {{.PasswordMin}} characters. No other rules.</span>{{end}}
+      </label>
+      {{if eq .Mode "signup"}}
+      <label class="auth-updates" for="product-updates">
+        <input id="product-updates" name="product_updates" type="checkbox"{{if .ProductUpdates}} checked{{end}}>
+        <span>Email me the six-part product and open-source introduction. Optional; unsubscribe any time.</span>
+      </label>
+      {{end}}
+      <button class="btn auth-submit" id="auth-submit" type="submit"
+        data-pending="{{if eq .Mode "signup"}}Creating your account…{{else}}Signing you in…{{end}}">
+        {{if eq .Mode "signup"}}Create account — get $1 free{{else}}Sign in{{end}}
+      </button>
+    </form>
+    {{if eq .Mode "signup"}}
+      <p class="auth-switch">Already have an account? <a href="/auth/login?next={{urlquery .Next}}">Sign in</a></p>
+      <p class="auth-trust">Your independent mojojojo account owns your projects, storage, compute, API keys, usage, and credits.</p>
+    {{else}}
+      <p class="auth-switch">New here? <a href="/auth/signup?next={{urlquery .Next}}">Create an account</a></p>
+    {{end}}
+  </section>
+</main>
+
+<script>
+(() => {
+  const password = document.querySelector("#password");
+  const reveal = document.querySelector("#password-reveal");
+  const form = document.querySelector("#auth-form");
+  const submit = document.querySelector("#auth-submit");
+  reveal.addEventListener("click", () => {
+    const showing = password.type === "text";
+    password.type = showing ? "password" : "text";
+    reveal.textContent = showing ? "Show" : "Hide";
+    reveal.setAttribute("aria-pressed", String(!showing));
+    password.focus();
+  });
+  form.addEventListener("submit", () => {
+    submit.disabled = true;
+    submit.textContent = submit.dataset.pending;
+  });
+})();
+</script>
+{{template "foot" .}}

@@ -1,0 +1,153 @@
+{{template "head" .}}
+
+<h1>Pricing</h1>
+<p class="lede">One mojojojo credit is <b>$0.001</b> and buys milliseconds here.</p>
+
+<table style="margin-top:22px">
+  <thead>
+    <tr><th>What</th><th>Rate</th><th>Works out as</th><th>1000 credits ($1) buys</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b class="acid">Browser</b><div class="dim">mojojojo.js, WebAssembly</div></td>
+      <td class="acid">free, unlimited</td>
+      <td class="dim">runs on the caller's machine</td>
+      <td class="dim">everything</td>
+    </tr>
+    <tr>
+      <td><b>CPU</b><div class="dim">one core, 2 GB</div></td>
+      <td class="mono">1 credit / {{.Cfg.MsPerCredit}} ms</td>
+      <td class="mono">$0.36 / core-hour</td>
+      <td class="mono">2.8 core-hours</td>
+    </tr>
+    <tr>
+      <td><b class="hot">GPU</b><div class="dim">RTX 5090, time-sliced</div></td>
+      <td class="mono">1 credit / {{.Cfg.MsPerCreditGPU}} ms</td>
+      <td class="mono">$1.80 / GPU-hour</td>
+      <td class="mono">33 GPU-minutes</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Persistent services · limited preview</h2>
+<p>Reserve a continuously running Python or Mojo process for WebSockets, warm models,
+custom servers, and in-memory indexes. Reserved capacity is billed while idle; normal
+scale-to-zero functions remain the economical default for bursty traffic.</p>
+<table>
+  <thead><tr><th>Profile</th><th>Reserved resources</th><th>Rate</th><th>Approx. 30 days if never stopped</th></tr></thead>
+  <tbody>
+    <tr><td><b class="acid">CPU nano</b></td><td>0.25 shared CPU · 512 MiB</td><td class="mono">200 credits · $0.20/hour</td><td class="mono">$144</td></tr>
+    <tr><td><b>CPU 1</b></td><td>1 CPU · 2 GiB</td><td class="mono">750 credits · $0.75/hour</td><td class="mono">$540</td></tr>
+    <tr><td><b>CPU 2</b></td><td>2 CPU · 4 GiB</td><td class="mono">1,400 credits · $1.40/hour</td><td class="mono">$1,008</td></tr>
+    <tr><td><b class="hot">GPU 24</b></td><td>4 CPU · 16 GiB · 24 GiB GPU</td><td class="mono">3,500 credits · $3.50/hour</td><td class="mono">$2,520</td></tr>
+  </tbody>
+</table>
+<p class="dim">Charged hourly in advance and cancelled at the next renewal. Failed builds
+are free. Billing pauses if reserved capacity is unavailable. Execution inside the reserved
+profile is included; storage above the included allowance remains separately metered.</p>
+
+<h2>Managed vector search</h2>
+<p>Durable vector projects with exact and performance search behind one API.</p>
+<div class="grid3">
+  <div class="panel">
+    <h3 class="acid">Exact CPU · $0.50</h3>
+    <p><b>per 1,000 queries</b></p>
+    <p class="dim">Predictable exact retrieval with no idle fee.</p>
+  </div>
+  <div class="panel">
+    <h3 class="hot">GPU performance · $1.50</h3>
+    <p><b>per 1,000 queries</b></p>
+    <p class="dim">Accelerated search for larger collections.</p>
+  </div>
+  <div class="panel">
+    <h3>$0.02 / 1,000 upserts</h3>
+    <p><b>250,000 documents per project</b></p>
+    <p class="dim">Batch upserts, metadata, durable documents, and API access included.</p>
+  </div>
+</div>
+<p class="dim">Shared usage is metered against the same credits as compute. Reserved
+capacity can be managed from the Vector dashboard.</p>
+
+<h2>Managed JSON data</h2>
+<div class="grid3">
+  <div class="panel"><h3 class="acid">10 databases included</h3><p class="dim">Tenant-isolated Postgres JSONB namespaces with API-key and session access.</p></div>
+  <div class="panel"><h3>10,000 records each</h3><p class="dim">Up to 64 KiB per JSON value and 100 MiB total per database on the shared tier.</p></div>
+  <div class="panel"><h3>Optional vector link</h3><p class="dim">Search text uses normal vector upsert/query rates; storing and reading JSON has no execution charge.</p></div>
+</div>
+<p class="dim">The shared data preview has no idle-instance fee. Dedicated Postgres will be a separate tier when workloads need SQL connections, extensions, or stronger isolation.</p>
+
+<h2>Object storage and site delivery</h2>
+<div class="grid3">
+  <div class="panel">
+    <h3 class="acid">1 GB included</h3>
+    <p class="dim">Per account, for deployed sites, models, and user-uploaded assets.</p>
+  </div>
+  <div class="panel">
+    <h3>$0.05 / GB-month</h3>
+    <p class="dim">Only storage above the included gigabyte. Usage is visible in Cloud.</p>
+  </div>
+  <div class="panel">
+    <h3>Delivery included</h3>
+    <p class="dim">Public assets are served from mojojojo's global static domain with no delivery surcharge.</p>
+  </div>
+</div>
+
+<h2>What is not billed</h2>
+<div class="grid3">
+  <div class="panel">
+    <h3 class="acid">Cold start</h3>
+    <p class="dim">The clock starts when your program starts. Interpreter
+    startup, the sandbox, and the process fork are ours. Warm slots make it
+    about 60ms end to end anyway.</p>
+  </div>
+  <div class="panel">
+    <h3 class="acid">Installing packages</h3>
+    <p class="dim">Your imports are read out of your code and installed by uv
+    into a cached environment. First time for a package set: a second or two.
+    Billed: nothing.</p>
+  </div>
+  <div class="panel">
+    <h3 class="acid">Our compiler</h3>
+    <p class="dim">Transpiling your kernels to Mojo and compiling them happens
+    on our machines, on our clock, after your run has returned.</p>
+  </div>
+</div>
+
+<h2>Free credits</h2>
+<p>Every new mojojojo account gets <b class="acid">{{.Cfg.WelcomeCredits}} credits — $1
+of compute</b> the first time it runs something here. No card, no trial clock.
+At the CPU rate that is nearly three core-hours, which is a lot of backtests.</p>
+<p class="dim">One grant per account, ever. Server-side runs need an account for
+exactly this reason: free compute behind an anonymous endpoint is free compute
+per <em>request</em>, and it would be strip-mined within a day. The browser
+runtime needs no account because it costs us nothing.</p>
+
+<h2>Worked examples</h2>
+<table>
+  <thead><tr><th>Job</th><th>Time</th><th>Cost</th></tr></thead>
+  <tbody>
+    <tr><td>A 40ms data transform, called 1000 times</td><td class="mono">40 s</td><td class="mono">4 credits — $0.004</td></tr>
+    <tr><td>A backtest that takes 3 s (native, after the first run)</td><td class="mono">3 s</td><td class="mono">0.3 credits — $0.0003</td></tr>
+    <tr><td>An hour of continuous CPU work</td><td class="mono">60 min</td><td class="mono">360 credits — $0.36</td></tr>
+    <tr><td>Ten minutes of GPU</td><td class="mono">10 min</td><td class="mono">300 credits — $0.30</td></tr>
+  </tbody>
+</table>
+<p class="dim">Sub-credit runs are not rounded up. Milliseconds accrue against
+your balance and a credit moves when they cross the rate, so a thousand 40ms
+calls cost the same as one 40-second call.</p>
+
+<h2>Capacity that follows demand</h2>
+<p>Capacity expands as paid demand grows. The prices above do not change, and
+queue time is never billed.</p>
+
+<div class="row" style="margin-top:34px">
+  {{if .User}}
+    <a class="btn" href="/editor">Open the editor</a>
+    <a class="btn ghost" href="{{.Cfg.AccountURL}}">Top up credits</a>
+  {{else}}
+    <a class="btn" href="/auth/login">Sign in and claim $1</a>
+    <a class="btn ghost" href="/editor">Try it in your browser first</a>
+  {{end}}
+</div>
+
+{{template "foot" .}}

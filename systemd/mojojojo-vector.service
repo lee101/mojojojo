@@ -1,0 +1,27 @@
+[Unit]
+Description=mojojojo.cc — folded-model vector search worker
+After=network.target
+
+[Service]
+Type=simple
+User=administrator
+WorkingDirectory=/nvme0n1-disk/code/mojojojo
+ExecStart=/nvme0n1-disk/code/mojojojo/.venv/bin/python -m vectorworker.server
+Environment=VECTOR_LISTEN=127.0.0.1
+Environment=VECTOR_PORT=4344
+Environment=VECTOR_DATA_DIR=/nvme0n1-disk/data/mojojojo/vector
+Environment=VECTOR_MODEL_PATH=/nvme0n1-disk/code/gobed/model/modelint8_512dim.safetensors
+Environment=VECTOR_TOKENIZER_PATH=/nvme0n1-disk/code/gobed/model/tokenizer.json
+Environment=MOJO_EMBED_LIBRARY=/nvme0n1-disk/code/mojo-embed/build/libmojo_embed.so
+Environment=MOJO_RUNTIME_DIR=/nvme0n1-disk/code/mojosub/.pixi/envs/default/lib
+Environment=VECTOR_GPU_REQUESTED=1
+Environment=VECTOR_CAGRA_MIN_VECTORS=1000
+Environment=VECTOR_CAGRA_CACHE_SIZE=4
+EnvironmentFile=-/nvme0n1-disk/data/mojojojo/secrets.env
+Restart=always
+RestartSec=3
+MemoryHigh=6G
+MemoryMax=10G
+
+[Install]
+WantedBy=multi-user.target

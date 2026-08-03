@@ -1,0 +1,43 @@
+[Unit]
+Description=mojojojo execution worker (sandboxed Python + Mojo)
+After=network.target
+
+[Service]
+Type=simple
+User=administrator
+WorkingDirectory=/nvme0n1-disk/code/mojojojo/runner
+# The worker itself only needs the stdlib; user programs run in uv-built venvs.
+ExecStart=/nvme0n1-disk/code/mojojojo/.venv/bin/python runner.py
+Environment=MOJOJOJO_RUNNER_HOST=127.0.0.1
+Environment=MOJOJOJO_RUNNER_PORT=4342
+Environment=MOJOJOJO_DATA=/nvme0n1-disk/data/mojojojo
+Environment=UV_CACHE_DIR=/nvme0n1-disk/data/mojojojo/uv-cache
+Environment=MOJOJOJO_MOJOSUB=/nvme0n1-disk/code/mojosub
+Environment=MOJOJOJO_JAIL=/usr/local/bin/mojojail
+# Concurrency is capped well below the core count: every extra concurrent run
+# inflates every other run's wall clock, which is what we bill.
+Environment=MOJOJOJO_CONCURRENCY=8
+# Mojo compiler processes are substantially heavier than running programs.
+# JIT units and whole-program builds share this ceiling.
+Environment=MOJOJOJO_COMPILE_CONCURRENCY=4
+Environment=MOJOJOJO_COMPILE_QUEUE=32
+Environment=MOJOJOJO_COMPILE_QUEUE_TIMEOUT_S=30
+Environment=MOJOJOJO_MEM_BYTES=2147483648
+# Ported Mojo libraries live next to this repo; a run only sees the ones it
+# imports, and only once their kernels are built.
+Environment=MOJOJOJO_CODE_ROOT=/nvme0n1-disk/code
+# Keep this much of the NVMe free at all times; evicted kernels move to the
+# archive disk and are re-fetched from the CDN if they are needed again.
+Environment=MOJOJOJO_DISK_RESERVE_GB=20
+Environment=MOJOJOJO_CACHE_ARCHIVE=/sdb-disk/mojojojo/cache
+# Object-storage credentials for the shared compile cache. Optional: without
+# them the cache is local + archive only.
+EnvironmentFile=-/nvme0n1-disk/data/mojojojo/secrets.env
+Restart=always
+RestartSec=3
+# The worker is the parent of every sandboxed program, so its own accounting
+# covers them; the jail applies the per-run limits.
+MemoryHigh=24G
+
+[Install]
+WantedBy=multi-user.target

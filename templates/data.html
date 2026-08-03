@@ -1,0 +1,79 @@
+{{template "head" .}}
+
+<h1>Data</h1>
+<p class="lede">Hosted JSON records with optional semantic search. No database
+process to provision and no idle instance to pay for.</p>
+
+{{if .User}}
+<div id="data-app">
+  <style>
+  #data-app label{display:block;margin:10px 0;color:var(--dim)}
+  #data-app input,#data-app select,#data-app textarea{width:100%;margin-top:5px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px}
+  #data-app textarea{min-height:150px;resize:vertical;font:13px/1.5 var(--mono)}
+  #data-app form .btn{margin-top:8px}.data-toolbar{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.data-toolbar label{flex:1;min-width:220px}
+  .data-record{position:relative}.data-record pre{max-height:240px;margin-bottom:10px}.data-record-actions{display:flex;gap:8px}
+  </style>
+  <div class="grid2">
+    <form class="panel" id="database-form">
+      <h3 style="margin-top:0">New database</h3>
+      <label>Name<br><input name="name" required maxlength="80" placeholder="Product data"></label>
+      <label>Semantic search<br><select name="vector_project_id" id="database-vector-project">
+        <option value="">Not linked</option>
+      </select></label>
+      <p class="dim" style="font-size:13px">Link an existing Vector project to index each record's search text automatically.</p>
+      <button class="btn" type="submit">Create database</button>
+    </form>
+    <form class="panel" id="record-form">
+      <h3 style="margin-top:0">Upsert record</h3>
+      <label>Database<br><select name="database_id" class="database-select" required></select></label>
+      <label>Key<br><input name="key" required maxlength="128" placeholder="customer:123"></label>
+      <label>JSON value<br><textarea name="value" required spellcheck="false">{
+  "name": "Ada",
+  "plan": "starter"
+}</textarea></label>
+      <label>Search text <span class="dim">(optional)</span><br><textarea name="search_text" placeholder="Ada is a starter customer interested in Mojo hosting."></textarea></label>
+      <button class="btn" type="submit">Save record</button>
+    </form>
+  </div>
+  <p id="data-status" class="dim" role="status"></p>
+
+  <h2>Records</h2>
+  <div class="data-toolbar">
+    <label>Database<br><select id="record-database" class="database-select"></select></label>
+    <button class="btn ghost" id="refresh-records" type="button">Refresh</button>
+  </div>
+  <div id="data-record-list" class="grid2"><div class="panel dim">Create or choose a database.</div></div>
+</div>
+<script src="/static/data.js" defer></script>
+{{else}}
+<div class="panel" style="max-width:650px">
+  <h2 style="margin-top:0">A database without another account</h2>
+  <p class="dim">Your mojojojo identity owns the records, API keys, vector link, and usage.
+  The service stores nothing in a browser-only tenant or a separate vendor account.</p>
+  <div class="row"><a class="btn" href="/auth/signup?next=/data">Create account — $1 free</a>
+  <a class="btn ghost" href="/auth/login?next=/data">Sign in</a></div>
+</div>
+{{end}}
+
+<h2>Built for app data</h2>
+<div class="grid3">
+  <div class="panel"><h3 class="acid">Durable</h3><p class="dim">Records and ownership persist independently from app deployments.</p></div>
+  <div class="panel"><h3 class="acid">Vector optional</h3><p class="dim">Link search text to a managed vector project when you need semantic retrieval.</p></div>
+  <div class="panel"><h3 class="acid">No idle fee</h3><p class="dim">Shared databases have no per-customer process to keep running.</p></div>
+</div>
+
+<h2>API</h2>
+<pre data-lang="python"><code>from mojojojo import Client
+
+client = Client()
+database = client.create_database("Product data")
+client.data_upsert(database["id"], "customer:123", {
+    "name": "Ada", "plan": "starter"
+}, search_text="Ada is interested in Mojo hosting")
+
+records = client.data_records(database["id"])</code></pre>
+<p class="dim">Record values are valid JSON up to 64 KiB. The shared tier includes 10 databases,
+10,000 records and 100 MiB per database;
+the API is tenant-scoped by session or <code class="inl">MOJOJOJO_API_KEY</code>.</p>
+
+{{template "foot" .}}

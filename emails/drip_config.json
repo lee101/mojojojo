@@ -1,0 +1,51 @@
+{
+  "campaign_id": "mojojojo_product_intro_v1",
+  "description": "Six concise product and open-source introductions over 21 days",
+  "from_email": "lee.penkman@netwrck.com",
+  "from_name": "Lee at mojojojo",
+  "reply_to": "lee.penkman@netwrck.com",
+  "emails": [
+    {
+      "id": "welcome",
+      "delay_days": 0,
+      "subject": "Welcome to mojojojo — start with one run",
+      "preheader": "Your account includes $1 of compute; here is the shortest path to using it.",
+      "template": "01-welcome"
+    },
+    {
+      "id": "studio",
+      "delay_days": 2,
+      "subject": "Build and publish from Studio",
+      "preheader": "One project for static files and metered Python or Mojo functions.",
+      "template": "02-studio"
+    },
+    {
+      "id": "mojosub",
+      "delay_days": 5,
+      "subject": "Why mojosub refuses most Python",
+      "preheader": "The deterministic subset, CPython fallback, and the gate for generated Mojo.",
+      "template": "03-mojosub"
+    },
+    {
+      "id": "agent",
+      "delay_days": 9,
+      "subject": "A coding agent that searches before it reads",
+      "preheader": "mjj keeps repository context grounded, bounded, and inspectable.",
+      "template": "04-agent"
+    },
+    {
+      "id": "notebooks-preview",
+      "delay_days": 14,
+      "subject": "Preview: notebooks where AI shows the diff",
+      "preheader": "The planned notebook boundary: reactive cells, reviewed edits, and one billing path.",
+      "template": "05-notebooks"
+    },
+    {
+      "id": "open-source-api",
+      "delay_days": 21,
+      "subject": "The open-source stack, and where the API fits",
+      "preheader": "mojosub, the compiler, the agent, the port factory, and the hosted layer.",
+      "template": "06-open-source"
+    }
+  ]
+}

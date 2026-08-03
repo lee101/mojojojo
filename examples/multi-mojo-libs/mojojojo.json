@@ -1,0 +1,5 @@
+{
+  "name": "multi-mojo-libs",
+  "runtime": "mojo",
+  "entrypoint": "index.html"
+}

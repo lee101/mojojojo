@@ -1,0 +1,317 @@
+{{define "head"}}
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Meta.Title}}</title>
+<meta name="description" content="{{.Meta.Desc}}">
+<link rel="canonical" href="{{.Meta.Canonical}}">
+<meta property="og:title" content="{{.Meta.Title}}">
+<meta property="og:description" content="{{.Meta.Desc}}">
+<meta property="og:image" content="{{.Meta.Image}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/static/logo.webp" type="image/webp">
+{{if .StripePage}}<script src="https://js.stripe.com/clover/stripe.js"></script>{{end}}
+<style>
+:root{
+  /* The neutral pastel terminal palette from the Ghostty/Kitty dotfiles,
+     adapted for longer-form web reading. Blue-charcoal owns the canvas; the
+     terminal accents are deliberately reserved for actions and state. */
+  --bg:#282c34; --bg2:#2d323b; --panel:#323842; --line:#4b5361;
+  --surface:#252a32; --surface-raised:#39414d; --line-strong:#626c7b;
+  --ink:#d9dee7; --dim:#abb2bf; --muted:#9aa3b2; --soft:#c5ccd7;
+  --acid:#98c379; --acid-ink:#20252c; --acid-rgb:152,195,121;
+  --grape:#c678dd; --grape-rgb:198,120,221;
+  --hot:#e06c75; --hot-rgb:224,108,117;
+  --link-hover:#b3d9ff; --sky:#87ceeb; --cyan:#56b6c2; --gold:#e5c07b;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --code:#22262e;
+
+  /* One Dark structure with Dracula's readable pastel separation. */
+  --d-com:#929baa; --d-kw:#c678dd; --d-str:#e5c07b; --d-num:#d7a7e3;
+  --d-fn:#98c379; --d-cls:#87ceeb; --d-var:#e5b878; --d-op:#c678dd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1100px 560px at 72% -12%,#3a4250 0%,var(--bg) 60%);
+  color:var(--ink);font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--acid);text-decoration:none}
+a:hover{color:var(--link-hover);text-decoration:underline}
+:focus-visible{outline:2px solid var(--sky);outline-offset:3px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+body.full-bleed{height:100vh;overflow:hidden;background:var(--bg)}
+body.full-bleed .wrap{max-width:none;height:100%;padding:0;display:flex;flex-direction:column}
+body.full-bleed header.top{flex:0 0 auto;padding:10px 18px;border-bottom:1px solid var(--line);
+  background:rgba(40,44,52,.96)}
+body.full-bleed header.top img{width:34px;height:34px;border-radius:9px}
+body.full-bleed footer{display:none}
+header.top{display:flex;align-items:center;gap:14px;padding:18px 0;flex-wrap:wrap}
+header.top img{width:44px;height:44px;border-radius:12px}
+.brand{font-weight:800;font-size:20px;letter-spacing:-.02em}
+.brand span{color:var(--acid)}
+nav{margin-left:auto;display:flex;gap:18px;align-items:center;font-size:15px}
+nav a{color:var(--dim)}
+nav a:hover{color:var(--link-hover)}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:5px 12px;font-size:13px;color:var(--dim)}
+.pill b{color:var(--acid)}
+a.pill:hover{text-decoration:none;border-color:var(--sky);color:var(--link-hover);background:var(--surface-raised)}
+.banner{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:6px 0 2px;
+  background:linear-gradient(90deg,rgba(var(--grape-rgb),.14),rgba(var(--hot-rgb),.08));
+  border:1px solid var(--grape);border-radius:12px;padding:11px 14px;font-size:14.5px}
+.banner .btn{margin-left:auto;padding:7px 14px;font-size:14px}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.03;letter-spacing:-.03em;margin:.2em 0}
+h2{font-size:26px;letter-spacing:-.02em;margin:2.2em 0 .6em}
+h3{font-size:18px;margin:1.6em 0 .4em}
+.lede{font-size:19px;color:var(--dim);max-width:62ch}
+.proof{display:flex;gap:8px 18px;flex-wrap:wrap;margin:4px 0 0;color:var(--dim);font-size:13px}
+.proof span{white-space:nowrap}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:22px;align-items:center;padding:10px 0 2px}
+.hero-mascot{display:none;width:156px;aspect-ratio:1;margin-inline:auto;background:center/contain no-repeat;
+  filter:drop-shadow(0 14px 28px rgba(var(--grape-rgb),.24))}
+.btn{display:inline-block;background:var(--acid);color:var(--acid-ink);font-weight:700;
+  padding:11px 18px;border-radius:10px;border:0;cursor:pointer;font-size:15px}
+.btn:hover{color:var(--acid-ink);text-decoration:none;background:#a8cf8b;filter:none}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{color:var(--link-hover);background:rgba(135,206,235,.07);border-color:var(--sky)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:22px 0}
+pre,code{font-family:var(--mono)}
+pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:16px;
+  overflow-x:auto;font-size:13.5px;line-height:1.55}
+code.inl{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.92em}
+
+/* Syntax highlighting — the classes hl.js emits. */
+.t-com{color:var(--d-com);font-style:italic}
+.t-kw{color:var(--d-kw)}
+.t-str{color:var(--d-str)}
+.t-key{color:var(--d-cls)}
+.t-num,.t-con{color:var(--d-num)}
+.t-fn{color:var(--d-fn)}
+.t-cls,.t-bui{color:var(--d-cls)}
+.t-bui{font-style:italic}
+.t-var,.t-flg{color:var(--d-var)}
+.t-dec{color:var(--d-fn);font-style:italic}
+.t-op{color:var(--d-op)}
+.t-prop{color:var(--d-cls)}
+.t-pun{color:var(--soft)}
+pre[data-lang]{position:relative}
+pre[data-lang]::after{content:attr(data-lang);position:absolute;top:8px;right:12px;
+  font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);opacity:.55}
+
+/* A textarea with hl.js behind it: the control stays real, the colour is a
+   layer under it. Both boxes are painted by attachEditor from the textarea's
+   own computed style, so only the shared frame lives here. */
+.hl-wrap{position:relative}
+.hl-wrap textarea::selection{background:rgba(var(--grape-rgb),.38)}
+.hl-layer{border:1px solid transparent;box-shadow:none}
+.panel{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+  border-radius:16px;padding:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid2>*,.grid3>*{min-width:0}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.mono{font-family:var(--mono)}
+.dim{color:var(--dim)}
+.acid{color:var(--acid)}
+.hot{color:var(--hot)}
+footer{margin:70px 0 34px;padding-top:28px;border-top:1px solid var(--line);color:var(--dim);font-size:14px}
+footer a{color:var(--dim)}
+footer a:hover{color:var(--link-hover)}
+.footer-grid{display:grid;grid-template-columns:1.35fr repeat(4,1fr);gap:28px 22px}
+.footer-brand{max-width:29ch}.footer-brand .brand{display:inline-block;color:var(--ink);margin-bottom:10px}
+.footer-brand p{margin:6px 0}.footer-col b{display:block;margin-bottom:10px;color:var(--soft);font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.footer-col a{display:block;margin:6px 0}.footer-bottom{display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap;margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px}
+.status-dot{display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--acid);box-shadow:0 0 0 3px rgba(var(--acid-rgb),.1)}
+.tabs{display:flex;gap:6px;margin-bottom:-1px;flex-wrap:wrap}
+.tab{padding:7px 14px;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;
+  background:var(--surface);color:var(--dim);cursor:pointer;font-size:14px}
+.tab:hover{color:var(--link-hover);background:var(--surface-raised)}
+.tab[aria-selected=true]{background:var(--code);color:var(--acid)}
+@media (max-width:860px){.hero{grid-template-columns:1fr}.grid3,.grid2{grid-template-columns:1fr}}
+@media (min-width:861px){.hero-mascot{display:block;background-image:url('/static/logo.webp')}}
+@media (max-width:860px){.footer-grid{grid-template-columns:repeat(2,1fr)}.footer-brand{grid-column:1/-1}}
+@media (max-width:700px){
+  header.top{flex-wrap:nowrap;gap:8px;padding:12px 0}
+  header.top img{width:34px;height:34px;border-radius:9px}
+  .brand{font-size:17px;white-space:nowrap}
+  header.top nav{min-width:0;gap:8px;flex-wrap:nowrap}
+  header.top nav>a:not(.btn):not(.pill){display:none}
+  header.top nav .btn{padding:8px 10px;font-size:12px;white-space:nowrap}
+  header.top nav .pill{max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  table{display:block;max-width:100%;overflow-x:auto}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:24px 18px}
+}
+</style>
+</head>
+<body{{if .FullBleed}} class="full-bleed"{{end}}>
+<div class="wrap">
+<header class="top">
+  <a href="/"><img src="/static/logo.webp" alt="mojojojo"></a>
+  <a href="/" class="brand">mojo<span>jojo</span></a>
+  <nav>
+    <a href="/studio">Studio</a>
+    <a href="/tools">Tools</a>
+    <a href="/cloud">Cloud</a>
+    <a href="/data">Data</a>
+    <a href="/vector">Vector</a>
+    <a href="/examples">Examples</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/docs">Docs</a>
+    <a href="/agent">Agent</a>
+    <a href="/research">Research</a>
+    <a href="/keys">Keys</a>
+    <a href="/usage">Usage</a>
+    {{if .User}}
+      <a class="pill" href="/credits" title="Balance, spending and top-ups">{{.User.DisplayName}} ·
+        <b>{{.Credits}}</b> credits</a>
+      <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
+      <a href="/auth/logout" title="Sign out of mojojojo">Sign out</a>
+    {{else}}
+      <a href="/credits">Credits</a>
+      <a href="/auth/login">Sign in</a>
+      <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+    {{end}}
+  </nav>
+</header>
+{{if .User}}{{if lt .Credits 100}}
+<div class="banner">
+  <span><b>{{.Credits}} credits left</b> — that is
+  {{seconds (creditsMs .Credits)}}s of CPU. Runs stop when it reaches zero.</span>
+  <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
+</div>
+{{end}}{{end}}
+{{end}}
+
+{{/* The masthead and styling every research post shares. A post template
+     calls "posthead" and then writes prose. */}}
+{{define "posthead"}}
+{{template "head" .}}
+<article class="post-body">
+<p class="dim" style="margin-bottom:2px"><a href="/research">← Research</a></p>
+<h1 style="font-size:clamp(28px,4.4vw,42px)">{{.Post.Title}}</h1>
+<p class="post-meta dim">
+  <span class="mono">{{.Post.Date}}</span> ·
+  {{range .Post.Tags}}<span class="tag tag-{{.}}">{{.}}</span> {{end}} ·
+  <span class="mono">{{.Post.Minutes}} min</span>
+</p>
+<p class="lede">{{.Post.Blurb}}</p>
+<style>
+.post-body{max-width:74ch}
+.post-body h2{margin:2em 0 .5em;font-size:24px}
+.post-body h3{margin:1.7em 0 .4em;font-size:17.5px;color:var(--acid)}
+.post-body p,.post-body li{max-width:74ch}
+.post-body ul{padding-left:1.15em}
+.post-body li{margin:.35em 0}
+.post-body table{margin:1.2em 0}
+.post-body pre{margin:1.2em 0}
+.post-body blockquote{margin:1.4em 0;padding:2px 0 2px 16px;
+  border-left:3px solid var(--grape);color:var(--dim)}
+.post-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;margin-top:0}
+.tag{border-radius:999px;padding:2px 9px;font-size:11.5px;letter-spacing:.04em;
+  text-transform:uppercase;border:1px solid var(--line)}
+.tag-containment{color:var(--d-cls);border-color:rgba(143,203,211,.4)}
+.tag-speed{color:var(--acid);border-color:rgba(var(--acid-rgb),.4)}
+.tag-tooling{color:var(--hot);border-color:rgba(var(--hot-rgb),.4)}
+.tag-product,.tag-studio{color:var(--acid);border-color:rgba(var(--acid-rgb),.4)}
+.tag-open-source,.tag-agent{color:var(--sky);border-color:rgba(135,206,235,.4)}
+.tag-preview,.tag-notebooks{color:var(--gold);border-color:rgba(229,192,123,.4)}
+.takeaway{background:linear-gradient(90deg,rgba(var(--acid-rgb),.1),rgba(var(--grape-rgb),.07));
+  border:1px solid var(--line);border-left:3px solid var(--acid);
+  border-radius:0 12px 12px 0;padding:14px 16px;margin:1.5em 0}
+.takeaway b{color:var(--acid)}
+.post-body .repro{font-size:13.5px}
+</style>
+{{end}}
+
+{{define "postfoot"}}
+<hr style="border:0;border-top:1px solid var(--line);margin:2.6em 0 1.4em">
+<p class="dim">Measured on the machine that served this page: Intel Xeon E5-2697
+v4 (Broadwell, AVX2), CPython 3.13, Mojo 1.0.0b3.dev2026072406. Numbers move
+between machines; the shape of the result is what we are claiming.</p>
+<div class="row">
+  <a class="btn" href="/editor">Try it in the editor</a>
+  <a class="btn ghost" href="/research">More research</a>
+  <a class="btn ghost" href="https://github.com/lee101/mojosub">mojosub on GitHub</a>
+</div>
+</article>
+{{template "foot" .}}
+{{end}}
+
+{{define "productpostfoot"}}
+<hr style="border:0;border-top:1px solid var(--line);margin:2.6em 0 1.4em">
+<p class="dim">Product notes describe what is live at publication time. Anything
+still being designed is marked as a preview; source repositories carry their own
+build and test instructions.</p>
+<div class="row">
+  <a class="btn" href="/studio">Open Studio</a>
+  <a class="btn ghost" href="/agent">Install the agent</a>
+  <a class="btn ghost" href="/research">More notes</a>
+</div>
+</article>
+{{template "foot" .}}
+{{end}}
+
+{{define "foot"}}
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="/" class="brand">mojo<span>jojo</span></a>
+      <p>Python and Mojo compute, hosting, data, vectors, and storage in one small platform.</p>
+      <p class="dim">Pay for execution, not idle machines. Compiles, builds, queueing, and cold starts are on us.</p>
+    </div>
+    <div class="footer-col">
+      <b>Build</b>
+      <a href="/studio">Studio</a>
+      <a href="/editor">Code editor</a>
+      <a href="/apps">App showcase</a>
+      <a href="/tools">Tool showcase</a>
+      <a href="/examples">Examples</a>
+    </div>
+    <div class="footer-col">
+      <b>Hosting</b>
+      <a href="/cloud">Cloud projects</a>
+      <a href="/docs#deploy-e2e">Static & ZIP deploys</a>
+      <a href="/docs#python-hosting">Python functions</a>
+      <a href="/docs#mojo-hosting">Mojo functions</a>
+      <a href="/docs#storage">Object storage</a>
+    </div>
+    <div class="footer-col">
+      <b>Data</b>
+      <a href="/data">Managed JSON data</a>
+      <a href="/vector">Vector search</a>
+      <a href="/docs#data-api">Data API</a>
+      <a href="/docs#vector">Vector API</a>
+      <a href="/cloud#storage">Storage usage</a>
+    </div>
+    <div class="footer-col">
+      <b>Developers</b>
+      <a href="/docs">API docs</a>
+      <a href="/docs#sdk">Python SDK & CLI</a>
+      <a href="/docs#precompile">Precompiler stage</a>
+      <a href="/keys">API keys</a>
+      <a href="/agent">Coding agent</a>
+      <a href="/research">Research</a>
+	  {{if .User}}<a href="/email/preferences">Email preferences</a>{{end}}
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span><span class="status-dot" aria-hidden="true"></span>Scale-to-zero services · durable data and objects</span>
+    <span>
+      <a href="/pricing">Pricing</a> · <a href="/credits">Credits</a> · <a href="/usage">Usage</a> ·
+      <a href="https://github.com/lee101/mojojojo">GitHub</a> · <a href="https://github.com/lee101/mojosub">mojosub</a> ·
+      <a href="{{.Cfg.TopUpURL}}">Buy credits</a> ·
+      {{if .User}}<a href="{{.Cfg.AccountURL}}">Account</a>{{else}}<a href="{{.Cfg.SignupURL}}">Create account</a> · <a href="/auth/login">Sign in</a>{{end}}
+    </span>
+  </div>
+</footer>
+</div>
+<script type="module">
+  import { highlightAll } from "/hl.js?v=20260802c";
+  highlightAll();
+</script>
+</body>
+</html>
+{{end}}

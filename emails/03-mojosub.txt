@@ -1,0 +1,6 @@
+mojosub compiles a deliberately small, typed numeric subset of Python to Mojo. Refusing unsupported code is part of the trust model.
+
+Everything else keeps a real CPython path. Agent-generated Mojo must compile, agree with CPython on generated inputs, and be measurably faster.
+
+How the gate works: {{.SiteBaseURL}}/research/converting-python-to-mojo?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=mojosub
+Source: https://github.com/lee101/mojosub

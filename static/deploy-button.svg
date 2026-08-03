@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="42" role="img" aria-label="Deploy to mojojojo">
+  <defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#7c4dff"/><stop offset="1" stop-color="#4bd08b"/></linearGradient></defs>
+  <rect width="220" height="42" rx="9" fill="#211b2b"/>
+  <rect x="1" y="1" width="218" height="40" rx="8" fill="none" stroke="url(#g)" stroke-width="2"/>
+  <path d="M20 28V14l12 7-12 7Zm3-5.2 5-2.8-5-2.8v5.6Z" fill="#86f0ad"/>
+  <text x="43" y="26.5" fill="#fff" font-family="system-ui,-apple-system,sans-serif" font-size="14" font-weight="700">Deploy to mojojojo</text>
+</svg>

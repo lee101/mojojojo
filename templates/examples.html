@@ -1,0 +1,80 @@
+{{template "head" .}}
+
+<h1>Open examples</h1>
+<p class="lede">Small enough to understand, complete enough to deploy. Each repository-style
+folder includes a manifest, source, assets, and one-command ZIP packaging.</p>
+
+<div class="grid3">
+  <article class="panel">
+    <p class="acid mono">qr-forge</p>
+    <h2 style="margin:.2em 0">QR codes as crisp SVG</h2>
+    <p class="dim">Encode links, Wi-Fi, or contact details with the Mojo QR port and a safe Python fallback.</p>
+    <p><a href="/studio?example=qr-forge&kind=tool">Use in Studio →</a> · <a href="/examples/source/qr-forge/README.md">Source</a></p>
+  </article>
+  <article class="panel">
+    <p class="acid mono">cron-lens</p>
+    <h2 style="margin:.2em 0">Cron without guessing</h2>
+    <p class="dim">Expand the next twelve real run times across time zones and daylight-saving transitions.</p>
+    <p><a href="/studio?example=cron-lens&kind=tool">Use in Studio →</a> · <a href="/examples/source/cron-lens/README.md">Source</a></p>
+  </article>
+  <article class="panel">
+    <p class="acid mono">phone-passport</p>
+    <h2 style="margin:.2em 0">Global number cleanup</h2>
+    <p class="dim">Normalize messy contact lists to E.164 with region, possibility, and validity checks.</p>
+    <p><a href="/studio?example=phone-passport&kind=tool">Use in Studio →</a> · <a href="/examples/source/phone-passport/README.md">Source</a></p>
+  </article>
+  <article class="panel">
+    <p class="acid mono">photo-twin</p>
+    <h2 style="margin:.2em 0">Perceptual duplicate finder</h2>
+    <p class="dim">Compare tiny local previews to catch resized and recompressed copies of the same image.</p>
+    <p><a href="/studio?example=photo-twin&kind=tool">Use in Studio →</a> · <a href="/examples/source/photo-twin/README.md">Source</a></p>
+  </article>
+  <article class="panel">
+    <p class="acid mono">json-to-csv</p>
+    <h2 style="margin:.2em 0">Python serverless tool</h2>
+    <p class="dim">A plain HTML frontend calling a metered Python function through the hosted-app gateway.</p>
+    <a href="/examples/source/json-to-csv/README.md">Source guide →</a>
+  </article>
+  <article class="panel">
+    <p class="acid mono">png-to-webp</p>
+    <h2 style="margin:.2em 0">Browser-first converter</h2>
+    <p class="dim">Private image conversion with no upload and no compute bill—the right default for a hosted tool.</p>
+    <a href="/examples/source/png-to-webp/README.md">Source guide →</a>
+  </article>
+  <article class="panel">
+    <p class="acid mono">mojo-serverless</p>
+    <h2 style="margin:.2em 0">Compiled function</h2>
+    <p class="dim">A complete website backed by a Mojo function, using the same manifest and request route as Python.</p>
+    <a href="/examples/source/mojo-serverless/README.md">Source guide →</a>
+  </article>
+  <article class="panel">
+    <p class="acid mono">mojojojo-style-transfer</p>
+    <h2 style="margin:.2em 0">Tiny ONNX style model</h2>
+    <p class="dim">A deterministic color-transform network generated from source, loaded as a normal project asset, and run locally in the browser.</p>
+    <a href="/examples/source/mojojojo-style-transfer/README.md">Source guide →</a>
+  </article>
+  <article class="panel">
+    <p class="acid mono">mojojojo-fractal</p>
+    <h2 style="margin:.2em 0">Interactive fractals</h2>
+    <p class="dim">A no-framework canvas app plus a two-file Mojo implementation showing project imports and the multi-file run API.</p>
+    <a href="/examples/source/mojojojo-fractal/README.md">Source guide →</a>
+  </article>
+  <article class="panel">
+    <p class="acid mono">multi-mojo-libs</p>
+    <h2 style="margin:.2em 0">Converted Mojo libraries</h2>
+    <p class="dim">A manifest and API examples for opting into the pure-Mojo compatibility libraries without hidden import rewriting.</p>
+    <a href="/examples/source/multi-mojo-libs/README.md">Source guide →</a>
+  </article>
+</div>
+
+<h2>One click, then make it yours</h2>
+<p>Every <b>Use in Studio</b> link loads the repository files directly into a browser draft. Sign in only when you are ready to save or publish.</p>
+<h3>Or deploy from the CLI</h3>
+<pre data-lang="shell"><code>cd examples/mojojojo-fractal
+zip -r fractal.zip mojojojo.json index.html app.js src
+curl -H "X-Api-Key: $MOJOJOJO_API_KEY" \
+  -F "project_id=$PROJECT_ID" -F "bundle=@fractal.zip" \
+  https://mojojojo.cc/v1/deployments</code></pre>
+<p class="dim">Or use the local ZIP picker on <a href="/cloud">Cloud</a>. The API returns the immutable public entrypoint URL.</p>
+
+{{template "foot" .}}

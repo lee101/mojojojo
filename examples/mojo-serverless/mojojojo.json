@@ -1,0 +1,8 @@
+{
+  "name": "Mojo serverless starter",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "hello": {"language": "mojo", "entrypoint": "functions/hello.mojo", "timeout_ms": 5000}
+  }
+}

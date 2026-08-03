@@ -1,0 +1,5 @@
+{
+  "name": "mojojojo-style-transfer",
+  "runtime": "static",
+  "entrypoint": "index.html"
+}

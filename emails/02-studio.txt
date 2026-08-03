@@ -1,0 +1,6 @@
+Studio keeps static files and metered Python or Mojo functions in one project. Test, preview, and publish an explicit version:
+{{.SiteBaseURL}}/studio?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=studio
+
+Static assets are delivered as files. Functions run only when called, through the normal mojojojo execution and credit ledger.
+
+Workflow: {{.SiteBaseURL}}/research/from-studio-to-a-hosted-app?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=studio

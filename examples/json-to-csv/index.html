@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>JSON to CSV</title>
+<style>body{font:16px system-ui;max-width:720px;margin:50px auto;padding:20px}textarea,pre{width:100%;min-height:180px;padding:12px;box-sizing:border-box}button{padding:10px 16px}</style>
+<h1>JSON → CSV</h1>
+<p>A static frontend with a Python serverless function.</p>
+<textarea id="input">[{"name":"Ada","language":"Mojo"},{"name":"Grace","language":"Python"}]</textarea>
+<button id="convert">Convert</button>
+<pre id="output">Ready.</pre>
+<script>
+document.querySelector('#convert').onclick=async()=>{
+  const response=await fetch('./api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rows:JSON.parse(document.querySelector('#input').value)})});
+  document.querySelector('#output').textContent=await response.text();
+};
+</script>

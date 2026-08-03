@@ -1,0 +1,464 @@
+{{template "head" .}}
+
+<h1>Docs</h1>
+<p class="lede">One endpoint, one auth header, one unit of billing. If you can
+write a curl command you are done in a minute.</p>
+
+<h2>Authenticate</h2>
+<p>Either an API key from <a href="/keys">/keys</a>, or the mojojojo session
+cookie used on this site. Server-side runs always need one of the two.</p>
+<pre data-lang="bash">Authorization: Bearer mj_live_...</pre>
+<p class="dim">There is no anonymous execution endpoint, and that is deliberate:
+free compute behind an unauthenticated URL is free compute per <em>request</em>,
+which is a botnet with good documentation. The browser runtime needs no account
+because it runs on the caller's own machine and costs us nothing. Signing in
+also gets you <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>, once.</p>
+
+<h2>POST /v1/run</h2>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Meaning</th></tr>
+  <tr><td class="mono">code</td><td>string</td><td>The program. Required.</td></tr>
+  <tr><td class="mono">stdin</td><td>string</td><td>Fed to the program's stdin.</td></tr>
+  <tr><td class="mono">args</td><td>string[]</td><td>Becomes <code class="inl">sys.argv[1:]</code>.</td></tr>
+  <tr><td class="mono">packages</td><td>string[]</td><td>PyPI specs, e.g. <code class="inl">["pandas==2.2.*"]</code>. Usually unnecessary — see auto-install below. Installed by uv into a cached, content-addressed venv.</td></tr>
+  <tr><td class="mono">auto_install</td><td>bool</td><td>Default true: your imports are read out of your code and installed. False gives you exactly <code class="inl">packages</code>.</td></tr>
+  <tr><td class="mono">timeout_ms</td><td>int</td><td>Default {{.Cfg.DefaultTimeoutMs}}, max {{.Cfg.MaxTimeoutMs}}.</td></tr>
+  <tr><td class="mono">gpu</td><td>bool</td><td>Run where an RTX 5090 is visible. Billed at the GPU rate.</td></tr>
+  <tr><td class="mono">accel</td><td>bool</td><td>Default true. Set false to run pure CPython with no transpilation.</td></tr>
+  <tr><td class="mono">language</td><td>string</td><td><code class="inl">"python"</code> (default) or <code class="inl">"mojo"</code> — a whole Mojo program, compiled here and run with no interpreter. See below.</td></tr>
+  <tr><td class="mono">env</td><td>object</td><td>Extra environment variables.</td></tr>
+</table>
+
+<h3>Response</h3>
+<pre data-lang="json">{
+  "ok": true,
+  "stdout": "3.141936\n",
+  "stderr": "",
+  "exit_code": 0,
+  "timed_out": false,
+  "wall_ms": 812.4,          // what your program took
+  "cpu_ms": 795.1,
+  "billable_ms": 812.4,      // wall, less any time our compiler stole
+  "queue_ms": 0.4,           // not billed
+  "accelerated": ["monte_carlo_pi"],
+  "accel": {"compiled": 1, "native_calls": 0, "cache_hits": 0, "compile_ms": 4210},
+  "env": {"key": "9dc899c5", "cached": true, "packages": ["numpy"]},
+  "isolated": true,
+  "charge": {"billed_ms": 812.4, "credits": 0, "owed_ms": 812.4,
+             "balance": 4820, "ms_per_credit": {{.Cfg.MsPerCredit}}}
+}</pre>
+
+<h3>Errors</h3>
+<table>
+  <tr><th>Status</th><th>Means</th></tr>
+  <tr><td>400</td><td>Bad request: no code, an invalid package spec, oversized program.</td></tr>
+  <tr><td>401</td><td>Not signed in, and the request wants something the free tier does not cover.</td></tr>
+  <tr><td>402</td><td>Out of credits (or out of free milliseconds). Manage them on the <a href="{{.Cfg.AccountURL}}">mojojojo credits page</a>.</td></tr>
+  <tr><td>502</td><td>The runner is unreachable. Nothing was billed.</td></tr>
+</table>
+<p class="dim">A program that raises still costs — it used the machine. A request
+we refuse before it runs never does.</p>
+
+<h2 id="compute-modes">Scale-to-zero or persistent</h2>
+<p>Choose the lifecycle that matches the program. They use the same project,
+deployment, storage, auth, and credit ledger, but they do not have the same billing contract.</p>
+<table>
+  <thead><tr><th></th><th>Scale-to-zero function</th><th>Persistent service</th></tr></thead>
+  <tbody>
+    <tr><td><b>Best for</b></td><td>HTTP APIs, webhooks, jobs, conversions</td><td>WebSockets, warm models, custom servers, live Mojo loops</td></tr>
+    <tr><td><b>Lifetime</b></td><td>One request</td><td>Reserved until stopped</td></tr>
+    <tr><td><b>State</b></td><td>Managed data, storage, vector, room broker</td><td>Memory may survive requests; durable state still uses managed storage</td></tr>
+    <tr><td><b>Billing</b></td><td>Measured execution milliseconds; no idle charge</td><td>Resource profile hourly in advance, including idle time</td></tr>
+    <tr><td><b>Status</b></td><td class="acid">available</td><td>limited preview</td></tr>
+  </tbody>
+</table>
+<p>Most applications should start scale-to-zero. Multiplayer rooms do not alone
+require a persistent server: the managed room broker and data API keep durable coordination
+outside an individual function process. Reserve a process only when the process itself must live.</p>
+<pre data-lang="json">{
+  "runtime": "app",
+  "entrypoint": "server.mojo",
+  "compute": {
+    "mode": "persistent",
+    "profile": "cpu-1",
+    "health_path": "/health",
+    "min_instances": 1
+  }
+}</pre>
+<p class="dim">Persistent manifests currently return a clear limited-preview error;
+they never silently deploy as functions. The production contract includes health checks,
+bounded restarts, connection draining, immutable updates, and paused billing whenever reserved
+capacity is unavailable.</p>
+
+<h2>Billing, exactly</h2>
+<ul>
+  <li>The clock starts when your program starts and stops when it returns.</li>
+  <li>Queue time, environment builds, container-equivalent startup, and the Mojo
+  compiler are all on us — <code class="inl">billable_ms</code> subtracts them.</li>
+  <li>Milliseconds accrue against your balance; one credit ($0.001) moves out of
+  the mojojojo ledger every {{.Cfg.MsPerCredit}}ms of CPU, or every
+  {{.Cfg.MsPerCreditGPU}}ms of GPU. A 40ms run is not rounded up to a credit.</li>
+  <li>Your mojojojo ledger line reads <code class="inl">exec:cpu:812ms</code>, so
+  every charge is traceable to a run.</li>
+</ul>
+
+<h2 id="credits">Credits</h2>
+<p>Credits are managed on <a href="{{.Cfg.TopUpURL}}">mojojojo.cc</a>.
+<a href="/credits">/credits</a> is the human view —
+balance, what it buys in machine time, the ledger line behind every charge, and
+the top-up button. <code class="inl">GET /v1/credits</code> is the same thing
+for a program, and it takes a session cookie or an API key:</p>
+<pre data-lang="json">{
+  "signed_in": true,
+  "credits": 3780,
+  "balance": {"free": 1380, "plan": 0, "paid": 2400, "usd": 3.78},
+  "buys": {"cpu_ms": 37800000, "gpu_ms": 7560000},
+  "owed_ms": 119.7, "total_ms": 481203.4,
+  "welcome_granted": true, "spent_credits": 16,
+  "ledger": [{"at": "2026-07-26T19:45:00Z", "delta": -14,
+              "reason": "exec:gpu:28000ms", "app": "mojojojo",
+              "source": "spend", "balance_after": 5864}],
+  "top_up": "{{.Cfg.TopUpURL}}"
+}</pre>
+<p class="dim"><code class="inl">buys.cpu_ms</code> is how many milliseconds the
+account can still pay for. Checking it before a long job is cheaper than a 402
+halfway through one — <code class="inl">mojojojo credits</code> in the CLI, or
+<code class="inl">Client.credits()</code> in the SDK.</p>
+
+<h2 id="sdk">Open-source Python SDK and CLI</h2>
+<pre data-lang="bash"><code>pip install mojojojo
+export MOJOJOJO_API_KEY=mj_live_...
+
+mojojojo run job.py
+mojojojo run kernel.mojo --language mojo
+mojojojo credits</code></pre>
+<pre data-lang="python"><code>from mojojojo import Client
+
+client = Client()  # reads MOJOJOJO_API_KEY
+result = client.run("print(sum(range(100)))")
+result.check()
+print(result.stdout, result.charge.usd)</code></pre>
+<p>The SDK has no runtime dependencies: one small Python package over
+<code class="inl">urllib</code>. It is MIT licensed and developed in the
+<a href="https://github.com/lee101/mojojojo">mojojojo repository</a>; the HTTP API remains
+the contract, so using curl or another language is equally supported.</p>
+
+<h2 id="precompile">Precompile as a deployment stage</h2>
+<p>Put preparation between tests and traffic when first-request latency matters. Python kernels
+need representative argument and return types, so this stage <em>executes the sample workload once</em>.
+Its execution is billed normally; package builds, transpilation, and Mojo compilation are not.</p>
+<pre data-lang="python"><code>from mojojojo import Client
+
+client = Client()
+prepared = client.precompile(open("backtest.py").read())
+print(prepared.ready, prepared.kernels, prepared.message)
+
+# The same source now starts with its content-addressed kernels available.
+result = client.run(open("backtest.py").read())</code></pre>
+<pre data-lang="bash"><code># A CI or release pipeline can make the stage explicit.
+python -m pytest
+mojojojo precompile backtest.py --json
+mojojojo precompile main.mojo --language mojo --json
+mojojojo deploy "$PROJECT_ID" app.zip</code></pre>
+<p>For accelerated Python, the representative script must actually call the hot numeric functions;
+declaring an unused function does not reveal its types. For a full Mojo program, preparation fills
+the content-addressed binary cache. The result keeps stdout, compiler diagnostics, and the execution
+charge visible—precompile is not a hidden or privileged execution path.</p>
+
+<h2 id="deploy-e2e">Deploy an app end to end</h2>
+<p>Every hosted app is an immutable ZIP. Static files are served directly; declared functions run
+at <code class="inl">/p/PROJECT_ID/api/FUNCTION</code>. A new deploy uploads new bytes and moves the
+active deployment pointer atomically.</p>
+
+<h3 id="python-hosting">Python function + frontend</h3>
+<pre data-lang="text"><code>hello-app/
+├── index.html
+├── mojojojo.json
+└── functions/
+    └── hello.py</code></pre>
+<pre data-lang="json"><code>{
+  "name": "hello-python",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "hello": {
+      "language": "python",
+      "entrypoint": "functions/hello.py",
+      "packages": [],
+      "timeout_ms": 3000
+    }
+  }
+}</code></pre>
+<pre data-lang="python"><code># functions/hello.py
+def handler(request):
+    name = request.get("body", {}).get("name", "world")
+    return {"status": 200, "body": {"message": f"Hello {name}"}}</code></pre>
+<pre data-lang="html"><code>&lt;button id="hello"&gt;Call Python&lt;/button&gt;
+&lt;script&gt;
+hello.onclick = async () =&gt; {
+  const response = await fetch("./api/hello", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({name: "Ada"})
+  });
+  hello.textContent = (await response.json()).message;
+};
+&lt;/script&gt;</code></pre>
+
+<h3 id="mojo-hosting">Mojo function + the same frontend</h3>
+<p>Change only the function declaration and entrypoint. A Mojo function reads the request envelope
+as JSON on stdin and writes either a response envelope or plain body on stdout:</p>
+<pre data-lang="json"><code>"functions": {
+  "hello": {"language":"mojo","entrypoint":"functions/hello.mojo","timeout_ms":5000}
+}</code></pre>
+<pre data-lang="mojo"><code># functions/hello.mojo
+def main():
+    print("{\"body\":{\"message\":\"Hello from compiled Mojo\"}}")</code></pre>
+
+<h3>Publish and verify</h3>
+<pre data-lang="bash"><code>cd hello-app
+python -m zipfile -c ../hello-app.zip index.html mojojojo.json functions/hello.py
+cd ..
+
+mojojojo project "Hello app" --runtime app
+# copy the returned project id
+mojojojo deploy "$PROJECT_ID" hello-app.zip
+
+curl -H 'Content-Type: application/json' -d '{"name":"Ada"}' \
+  "{{.Cfg.SiteBaseURL}}/p/$PROJECT_ID/api/hello"</code></pre>
+<p class="dim">The function receives <code class="inl">method</code>, <code class="inl">path</code>,
+<code class="inl">query</code>, selected request headers, and a parsed JSON or text body. The app owner
+pays function execution from the same credit balance; static delivery has no execution charge.</p>
+
+<h2 id="data-api">Managed data API</h2>
+<p>A database is a tenant-scoped JSONB namespace in mojojojo Postgres. Linking a vector project makes
+<code class="inl">search_text</code> a durable vector document while the JSON record stays authoritative.</p>
+<pre data-lang="python"><code>database = client.create_database("Customers", vector_project_id="vec_PROJECT")
+client.data_upsert(database["id"], "customer:123", {
+    "name": "Ada", "plan": "starter"
+}, search_text="Ada builds services with Mojo")
+
+records = client.data_records(database["id"])
+client.data_delete(database["id"], "customer:123")</code></pre>
+<p>Use the <a href="/data">Data UI</a> for the same create, edit, list, and delete flow. The first
+shared tier is intentionally bounded—10 databases, 64 KiB JSON values, 10,000 records and 100 MiB per database—so it adds
+nearly zero idle cost. Dedicated Postgres remains a future isolation/performance tier, not a process
+we keep running for every empty account.</p>
+
+<h2 id="vector">Managed vector search</h2>
+<p>A vector project owns durable source documents and a rebuildable 512-dimensional
+int8 index. The bundled folded model means callers send text, not model-specific vectors.
+Projects are tenant-scoped at the control plane; workers see only an opaque project ID.</p>
+<pre data-lang="bash"><code># create
+curl -H "Authorization: Bearer $MOJOJOJO_KEY" -H 'Content-Type: application/json' \
+  -d '{"name":"Product docs","tier":"exact"}' \
+  {{.Cfg.SiteBaseURL}}/v1/vector/projects
+
+# index up to 256 documents per request
+curl -H "Authorization: Bearer $MOJOJOJO_KEY" -H 'Content-Type: application/json' \
+  -d '{"documents":[{"id":"mojo","text":"Mojo compiles fast kernels.",
+       "metadata":{"section":"runtime"}}]}' \
+  {{.Cfg.SiteBaseURL}}/v1/vector/projects/vec_PROJECT/upsert
+
+# retrieve
+curl -H "Authorization: Bearer $MOJOJOJO_KEY" -H 'Content-Type: application/json' \
+  -d '{"query":"fast compiled code","limit":10}' \
+  {{.Cfg.SiteBaseURL}}/v1/vector/projects/vec_PROJECT/search</code></pre>
+<pre data-lang="json"><code>{
+  "ok": true,
+  "matches": [{"id":"mojo","score":0.8731,"metadata":{"section":"runtime"}}],
+  "vector_count": 24012,
+  "backend": "mojo-int8-exact",
+  "latency_ms": 0.74,
+  "charge": {"accrued_credits":0.5,"charged_credits":0,"owed_credits":0.5}
+}</code></pre>
+<p><code class="inl">exact</code> provides exhaustive retrieval.
+<code class="inl">performance</code> automatically accelerates larger collections.</p>
+<p class="dim">Your documents stay durable while indexes are managed automatically.</p>
+
+<h2 id="cloud">Projects, assets, and ZIP deployments</h2>
+<p>Create a project once, then deploy immutable versions. A bundle contains a
+<code class="inl">mojojojo.json</code> manifest and its entrypoint:</p>
+<pre data-lang="shell"><code>curl -H "X-Api-Key: $MOJOJOJO_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"name":"fractal","runtime":"static"}' \
+  https://mojojojo.cc/v1/projects
+
+curl -H "X-Api-Key: $MOJOJOJO_API_KEY" \
+  -F "project_id=$PROJECT_ID" -F "bundle=@site.zip" \
+  https://mojojojo.cc/v1/deployments</code></pre>
+<p>For direct assets, request a signed URL and PUT the exact number of bytes to it:</p>
+<pre data-lang="json"><code>POST /v1/uploads/sign
+{"filename":"model.onnx","content_type":"application/octet-stream","size_bytes":330}
+
+{"method":"PUT","upload_url":"https://mojojojo.cc/v1/uploads/…",
+ "asset_url":"https://assets.example/uploads/…"}</code></pre>
+
+<h3 id="storage">Storage</h3>
+<p>Deployments and uploaded assets are durable, versioned, and available to your projects.
+Compute workers use managed copies, so a worker is never the only place your data exists.</p>
+
+<h2 id="multi-mojo">Multi-file Mojo</h2>
+<pre data-lang="json"><code>{
+  "language": "mojo",
+  "entrypoint": "main.mojo",
+  "files": {
+    "main.mojo": "from palette import shade\\n...",
+    "palette.mojo": "def shade(iterations: Int) -> Int: ..."
+  }
+}</code></pre>
+<p>Up to 32 relative <code class="inl">.mojo</code> files (512 KiB total) are
+built as one content-addressed project. Helper changes create a new build key;
+the build remains unbilled and only the isolated binary is executed.</p>
+
+<h2 id="autoinstall">Imports install themselves</h2>
+<p><code class="inl">import pandas</code> is enough. The program's imports are
+parsed, the standard library and anything already present are skipped, module
+names that differ from their distribution are mapped (<code class="inl">cv2</code>
+→ opencv, <code class="inl">PIL</code> → pillow, <code class="inl">sklearn</code>
+→ scikit-learn), and uv builds a content-addressed environment. The same set of
+packages is built once and reused by everyone afterwards.</p>
+<pre data-lang="json">{"env": {"key": "64b598df", "cached": false, "build_ms": 1440,
+         "packages": ["httpx", "numpy", "pandas"],
+         "auto": ["httpx", "pandas"]}}</pre>
+<p class="dim">A guess that will not install never fails a run that would
+otherwise work: the environment falls back to exactly what you asked for and
+says so in <code class="inl">auto_failed</code>. Builds are not billed.</p>
+
+<h2 id="faststart">Cold start</h2>
+<p>Runs land on a pre-warmed interpreter that already has the sandbox, the
+unprivileged uid and numpy in place, and each run is a <code class="inl">fork()</code>
+of it. Measured end to end on this box: <b>~60ms</b> warm against ~220ms cold,
+and <code class="inl">warm_start</code> in the response says which you got. It
+changes latency, not price — the billing clock starts when your program does.</p>
+
+<h2 id="gpu">GPU</h2>
+<p><code class="inl">"gpu": true</code> runs where an RTX 5090 is visible, at
+1 credit per {{.Cfg.MsPerCreditGPU}}ms. The device is time-sliced: a small
+number of GPU runs execute at once and the rest queue, because four concurrent
+CUDA programs thrash VRAM and make everyone's wall clock — which is what you
+pay for — worse. Queue time is not billed.</p>
+
+<h2 id="scaling">Automatic capacity</h2>
+<p>Capacity expands with sustained demand and scales back when it is idle.
+Prices stay the same, and time spent waiting in a queue is never billed.</p>
+
+<h2>What gets compiled</h2>
+<p>A top-level function is handed to mojosub when it takes arguments, contains a
+loop, and stays inside the numeric subset — ints, floats, arithmetic,
+comparisons, <code class="inl">math</code>, and calls to other eligible
+functions. Anything else runs on CPython, which is most code, and that is
+fine.</p>
+<pre data-lang="python">def sma_crossover(prices, fast: int, slow: int) -> float:   # compiled
+    ...
+
+def load(path):                                             # CPython
+    with open(path) as fh:
+        return json.load(fh)</pre>
+<p class="dim">The first native result is checked against CPython's before the
+compiled variant is trusted; a mismatch retires it silently and you keep the
+Python answer. Pass <code class="inl">"accel": false</code> to skip all of it.</p>
+
+<h3>Or write the Mojo yourself</h3>
+<p>Send <code class="inl">"language": "mojo"</code> and the whole program is
+Mojo: we build it on our machines — there is no compiler inside the sandbox —
+and run the binary. Nothing is interpreted, so there is no first call to warm
+up and no verification pass; it is native from the first instruction.</p>
+<pre data-lang="bash">curl -s {{.Cfg.SiteBaseURL}}/v1/run \
+  -H "Authorization: Bearer $MOJOJOJO_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"language":"mojo","code":"def main():\n    print(\"hello\")\n"}'</pre>
+<p>The build is <b>never billed</b> — you wait for it the first time anybody
+runs that exact source, and never again, because binaries are content-addressed
+the same way compiled kernels are. <code class="inl">build_ms</code> says how
+long it took and <code class="inl">build_cached</code> whether it was already
+built. A program that does not compile comes back with the compiler's
+diagnostics, <code class="inl">"ok": false</code>, and a bill of zero.</p>
+<p class="dim">This Mojo is 1.0: <code class="inl">def</code> rather than
+<code class="inl">fn</code>, and the standard library is under
+<code class="inl">std.</code> — <code class="inl">from std.sys import argv</code>.
+Mojo runs always go to our machines; the browser runtime has no wasm build of
+the toolchain to fall back to.</p>
+
+<h3>numpy arrays cross for free</h3>
+<p>Anything exposing <code class="inl">__array_interface__</code> is passed by
+address. A <code class="inl">list[float]</code> has to be copied on every call,
+and for a million elements that copy costs more than the arithmetic saves — so
+pass arrays, not lists, to hot functions.</p>
+
+<h2>The browser runtime</h2>
+<pre data-lang="js">&lt;script type="module"&gt;
+import { run, plan } from "https://mojojojo.cc/mojojojo.js"
+
+plan(code)                     // {where: "browser"|"server", why: "..."}
+await run(code)                // free locally, billed only on fallback
+await run(code, {gpu: true})   // always server
+await run(code, {where: "server", apiKey: KEY})
+&lt;/script&gt;</pre>
+<p>It boots Pyodide (CPython on WebAssembly) on the caller's machine and goes to
+our servers only for a GPU, a package with no wasm wheel, an import we know
+wasm cannot serve, or a browser runtime that failed to start. Every result
+carries <code class="inl">where</code> and <code class="inl">why</code>.</p>
+
+<h2>Sandbox</h2>
+<p>Your program runs as an unprivileged user in its own network namespace — no
+network, no other tenant's files — with limits on memory, CPU seconds, file
+size, and process count, in a scratch directory deleted when it exits.
+<code class="inl">isolated: true</code> in the response confirms it; if you ever
+see false, that is a development machine, not production.</p>
+<p class="dim">Package installs happen outside the sandbox, before your code
+starts, which is why imports work despite there being no network inside.</p>
+<p>There is <b>no compiler inside the sandbox</b> and no writable shared state.
+A run sees the compile cache as symlinks it can read and replace only within its
+own directory; when it wants a kernel built, the request is queued and
+<em>we</em> compile it, afterwards, from the source its content hash names. What
+a run teaches the cache is one thing — the return type it learned — and never a
+verdict about whether a compiled variant is correct. Every run re-checks its
+first native result against CPython for itself.</p>
+
+<h2>SDKs</h2>
+<div class="grid2">
+  <div>
+    <h3>Python</h3>
+<pre data-lang="python">pip install mojojojo
+
+from mojojojo import run, remote
+
+r = run("print(6*7)")
+r.stdout          # '42\n'
+r.charge.usd      # 4.1e-06
+
+@remote(packages=["numpy"])
+def sharpe(returns, window):
+    import numpy as np
+    ...
+
+sharpe(prices, 64)     # runs there
+sharpe.local(prices, 64)  # runs here</pre>
+  </div>
+  <div>
+    <h3>JavaScript</h3>
+<pre data-lang="js">import { run, plan } from
+  "https://mojojojo.cc/mojojojo.js"
+
+plan(code)     // where this would run, and why
+await run(code)             // browser if it can
+await run(code, {gpu: true}) // always server</pre>
+    <h3>CLI</h3>
+<pre data-lang="bash">mojojojo run script.py --gpu
+app exec script.py --packages numpy</pre>
+  </div>
+</div>
+
+<h2>Self-host</h2>
+<p>The execution layer is <a href="https://github.com/lee101/mojosub">mojosub</a>,
+which is open source and runs anywhere Mojo does. mojojojo is the metered,
+hosted version of it.</p>
+
+<h2>How it works, in detail</h2>
+<p>The <a href="/research">research notes</a> are the long version of this page:
+why there is <a href="/research/no-compiler-in-the-sandbox">no compiler inside
+the sandbox</a> and what that buys, <a href="/research/how-early-do-we-know">how
+early we can tell a function will not compile</a>, and
+<a href="/research/the-copy-nobody-needed">where the time actually goes</a> when
+it does. Every number in them is measured on the machine serving this page.</p>
+
+{{template "foot" .}}

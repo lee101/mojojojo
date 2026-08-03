@@ -1,0 +1,38 @@
+{{template "head" .}}
+
+<h1>Usage</h1>
+{{if not .User}}
+  <p class="lede">Every run, what it cost, and where it went — for your account.
+  New accounts start with <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>.</p>
+  <div class="row">
+    <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+    <a class="btn ghost" href="/auth/login?next=/usage">Sign in</a>
+  </div>
+{{else}}
+<div class="grid3">
+  <div class="panel"><h3 class="acid">{{.Credits}}</h3><p class="dim">credits left ·
+    <a href="{{.Cfg.TopUpURL}}">top up</a> · <a href="/credits">manage</a></p></div>
+  <div class="panel"><h3 class="acid">{{ms .TotalMs}}ms</h3><p class="dim">executed here, all time</p></div>
+  <div class="panel"><h3 class="acid">{{ms .OwedMs}}ms</h3><p class="dim">accrued, not yet a whole credit</p></div>
+</div>
+
+{{if .Runs}}
+<table style="margin-top:26px">
+  <tr><th>When</th><th>Ran for</th><th>Charged</th><th>Where</th><th>Native</th><th>Via</th></tr>
+  {{range .Runs}}
+  <tr>
+    <td class="dim">{{.At.Format "2006-01-02 15:04:05"}}</td>
+    <td class="mono">{{ms .Ms}}ms</td>
+    <td class="mono">{{if .Credits}}{{.Credits}} credit(s){{else}}<span class="dim">accrued</span>{{end}}</td>
+    <td>{{if .GPU}}<span class="hot">GPU</span>{{else}}CPU{{end}}</td>
+    <td>{{if .Native}}<span class="acid">yes</span>{{else}}<span class="dim">no</span>{{end}}</td>
+    <td class="dim">{{.Source}}</td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="dim" style="margin-top:20px">Nothing yet. <a href="/">Run something.</a></p>
+{{end}}
+{{end}}
+
+{{template "foot" .}}

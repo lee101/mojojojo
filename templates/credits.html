@@ -1,0 +1,255 @@
+{{template "head" .}}
+
+<h1>Credits</h1>
+
+{{if not .User}}
+<p class="lede">One mojojojo balance, spent by the millisecond here. New
+accounts get <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>
+of compute free — no card, no trial clock.</p>
+
+<div class="grid2" style="margin-top:22px">
+  <div class="panel">
+    <h3>1 · Create an account</h3>
+    <p class="dim">mojojojo owns the account, wallet, API keys, and meter in
+    its own Postgres database.</p>
+    <div class="row">
+      <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+      <a class="btn ghost" href="/auth/login?next=/credits">I have an account</a>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>2 · Run something</h3>
+    <p class="dim">Your welcome credits land the first time you run code on our
+    machines — from the <a href="/editor">editor</a>, the API, or the SDK. Until
+    then nothing is spent and no card is asked for.</p>
+    <div class="row">
+      <a class="btn ghost" href="/editor">Open the editor</a>
+      <a class="btn ghost" href="{{.Cfg.TopUpURL}}">Buy credits</a>
+    </div>
+  </div>
+</div>
+
+<h2>What a credit buys</h2>
+<table>
+  <thead><tr><th>Balance</th><th>Worth</th><th>CPU</th><th>GPU</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">{{.Cfg.WelcomeCredits}} <span class="dim">(free, on signup)</span></td>
+      <td class="mono">{{dollars .Cfg.WelcomeCredits}}</td>
+      <td class="mono">{{cpuHours .Cfg.WelcomeCredits}} core-hours</td>
+      <td class="mono">{{gpuMinutes .Cfg.WelcomeCredits}} GPU-minutes</td></tr>
+    <tr><td class="mono">5000</td><td class="mono">{{dollars 5000}}</td>
+      <td class="mono">{{cpuHours 5000}} core-hours</td>
+      <td class="mono">{{gpuMinutes 5000}} GPU-minutes</td></tr>
+    <tr><td class="mono">100000</td><td class="mono">{{dollars 100000}}</td>
+      <td class="mono">{{cpuHours 100000}} core-hours</td>
+      <td class="mono">{{gpuMinutes 100000}} GPU-minutes</td></tr>
+  </tbody>
+</table>
+<p class="dim">Browser runs via <a href="/docs">mojojojo.js</a> cost nothing and
+need no account at all — they execute on the caller's own machine.</p>
+
+{{else}}
+
+<p class="lede">Your mojojojo balance, what it buys here, and where it went.
+It belongs only to your mojojojo account.</p>
+
+<div class="grid3" style="margin-top:20px">
+  <div class="panel">
+    <h3 class="acid" style="margin-top:0">{{.Credits}}</h3>
+    <p class="dim">credits — <b>{{dollars .Credits}}</b><br>
+    {{.User.FreeCredit}} free · {{.User.PlanCredit}} plan · {{.User.PaidCredit}} paid</p>
+    <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
+  </div>
+  <div class="panel">
+    <h3 class="acid" style="margin-top:0">{{cpuHours .Credits}} h</h3>
+    <p class="dim">of CPU at 1 credit / {{.Cfg.MsPerCredit}}ms —
+    or {{gpuMinutes .Credits}} minutes of GPU.</p>
+  </div>
+  <div class="panel">
+    <h3 class="acid" style="margin-top:0">{{ms .TotalMs}}ms</h3>
+    <p class="dim">executed here, all time. {{.Spent}} credits spent on mojojojo,
+    {{.Earned}} granted.</p>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:16px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+    <b>Accruing towards the next credit</b>
+    <span class="mono dim">{{ms .OwedMs}} / {{.Cfg.MsPerCredit}} ms</span>
+  </div>
+  <div class="meter" style="margin-top:10px">
+    <span style="width:{{pct .OwedMs .Cfg.MsPerCredit}}%"></span>
+  </div>
+  <p class="dim" style="margin-bottom:0">Short runs are not rounded up. Milliseconds
+  accrue here and one credit moves through the mojojojo ledger each time they cross
+  {{.Cfg.MsPerCredit}}ms, so a thousand 40ms calls cost exactly what one 40-second
+  call costs.</p>
+</div>
+
+{{if .StripeConfigured}}
+<h2>Buy compute with Stripe</h2>
+<p class="dim">Credits work across notebooks, hosted functions, CPU/GPU runs,
+and the API. Checkout stays on this page.</p>
+
+<div class="grid2 billing-grid">
+  <div class="panel">
+    <p class="billing-kicker">Prepaid · never expires</p>
+    <h3 style="margin-top:0">Add credits</h3>
+    <p><b>1¢ = 10 credits.</b> $5 minimum.</p>
+    <div class="billing-actions">
+      <button class="btn ghost" data-stripe-offer="credits" data-stripe-quantity="500">$5</button>
+      <button class="btn ghost" data-stripe-offer="credits" data-stripe-quantity="2000">$20</button>
+      <button class="btn" data-stripe-offer="credits" data-stripe-quantity="5000">$50</button>
+      <button class="btn ghost" data-stripe-offer="credits" data-stripe-quantity="10000">$100</button>
+    </div>
+  </div>
+
+  {{if .DeveloperAvailable}}
+  <div class="panel billing-featured">
+    <p class="billing-kicker acid">Subscription · notebooks + API</p>
+    <h3 style="margin-top:0">Developer</h3>
+    <p><b>$12/month</b> for 12,000 credits: about 33 CPU hours or 400 GPU minutes.</p>
+    <p class="dim">$120/year includes 144,000 credits.</p>
+    <div class="billing-actions">
+      <button class="btn ghost" data-stripe-offer="developer_monthly">$12 monthly</button>
+      <button class="btn" data-stripe-offer="developer_annual">$120 annually</button>
+    </div>
+  </div>
+  {{end}}
+</div>
+
+{{if .DedicatedAvailable}}
+<div class="panel dedicated-plan">
+  <div>
+    <p class="billing-kicker hot">Dedicated hardware · limited capacity</p>
+    <h3 style="margin-top:0">RTX 5090 workspace</h3>
+    <p class="dim">Dedicated 32 GB GPU for notebooks and private jobs. $699/month
+    or $6,990/year. Subject to capacity.</p>
+  </div>
+  <div class="billing-actions">
+    <button class="btn ghost" data-stripe-offer="dedicated_monthly">$699 monthly</button>
+    <button class="btn" data-stripe-offer="dedicated_annual">$6,990 annually</button>
+  </div>
+</div>
+{{end}}
+
+<div class="row">
+  <button class="btn ghost" id="stripe-portal">Manage subscription, invoices &amp; payment methods</button>
+  <span class="dim">{{if .StripeTaxEnabled}}Stripe Tax is enabled for registered jurisdictions.{{else}}Tax calculation is waiting for an active Stripe Tax registration.{{end}}</span>
+</div>
+
+<div id="stripe-modal" class="stripe-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="stripe-modal-title">
+  <div class="stripe-backdrop" data-stripe-close></div>
+  <section class="stripe-dialog">
+    <header>
+      <div>
+        <p class="billing-kicker">Secure Stripe Checkout</p>
+        <h2 id="stripe-modal-title">Complete payment</h2>
+      </div>
+      <button class="stripe-close" type="button" data-stripe-close aria-label="Close checkout">×</button>
+    </header>
+    <p id="stripe-error" class="hot" hidden></p>
+    <div id="stripe-loading" class="dim">Preparing checkout…</div>
+    <div id="stripe-checkout"></div>
+  </section>
+</div>
+<div id="stripe-return" class="banner" hidden></div>
+{{end}}
+
+{{if not .Granted}}
+<div class="banner" style="margin-top:16px">
+  <span><b class="acid">{{.Cfg.WelcomeCredits}} welcome credits ({{dollars .Cfg.WelcomeCredits}})</b>
+  are waiting — they land automatically the first time you run something on our machines.</span>
+  <a class="btn" href="/editor">Run something</a>
+</div>
+{{end}}
+
+{{if lt .Credits 1}}
+<div class="banner" style="margin-top:16px;border-color:var(--hot)">
+  <span><b>Out of credits.</b> Server runs are refused with a 402 until you top up.
+  Browser runs still work and are still free.</span>
+  <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
+</div>
+{{end}}
+
+<h2>Ledger</h2>
+<p class="dim">Every mojojojo credit movement on this account, newest first.
+A run line names the milliseconds it paid for.</p>
+{{if .Ledger}}
+<div class="scrollx">
+<table>
+  <thead><tr><th>When</th><th>Change</th><th>Why</th><th>App</th><th>Kind</th><th>Balance</th></tr></thead>
+  <tbody>
+  {{range .Ledger}}
+    <tr>
+      <td class="dim">{{.At.Format "2006-01-02 15:04"}}</td>
+      <td class="mono">{{if gt .Delta 0}}<span class="acid">+{{.Delta}}</span>{{else}}<span class="hot">{{.Delta}}</span>{{end}}</td>
+      <td class="mono dim">{{.Reason}}</td>
+      <td>{{if eq .App "mojojojo"}}<b class="acid">mojojojo</b>{{else}}<span class="dim">{{.App}}</span>{{end}}</td>
+      <td class="dim">{{.Source}}</td>
+      <td class="mono dim">{{.Balance}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{else}}
+<p class="dim">No credit movements yet. Nothing has been charged to this account.</p>
+{{end}}
+
+<h2>Recent runs</h2>
+{{if .Runs}}
+<div class="scrollx">
+<table>
+  <thead><tr><th>When</th><th>Ran for</th><th>Charged</th><th>Where</th><th>Native</th><th>Via</th></tr></thead>
+  <tbody>
+  {{range .Runs}}
+    <tr>
+      <td class="dim">{{.At.Format "2006-01-02 15:04:05"}}</td>
+      <td class="mono">{{ms .Ms}}ms</td>
+      <td class="mono">{{if .Credits}}{{.Credits}}{{else}}<span class="dim">accrued</span>{{end}}</td>
+      <td>{{if .GPU}}<span class="hot">GPU</span>{{else}}CPU{{end}}</td>
+      <td>{{if .Native}}<span class="acid">yes</span>{{else}}<span class="dim">no</span>{{end}}</td>
+      <td class="dim">{{.Source}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+<p class="dim"><a href="/usage">Full run history →</a></p>
+{{else}}
+<p class="dim">Nothing has run on this account yet. <a href="/editor">Open the editor.</a></p>
+{{end}}
+
+<h2>Manage</h2>
+<div class="row">
+  <a class="btn" href="{{.Cfg.TopUpURL}}">Manage mojojojo credits</a>
+  <a class="btn ghost" href="{{.Cfg.AccountURL}}">Account</a>
+  <a class="btn ghost" href="/keys">API keys</a>
+  <a class="btn ghost" href="/v1/credits">This page as JSON</a>
+</div>
+<p class="dim">This balance and ledger belong only to mojojojo. The execution
+workers receive neither your login nor your API key.</p>
+{{end}}
+
+<style>
+.meter{height:9px;border-radius:999px;background:var(--code);border:1px solid var(--line);overflow:hidden}
+.meter span{display:block;height:100%;background:linear-gradient(90deg,var(--grape),var(--acid))}
+.scrollx{overflow-x:auto}
+.scrollx table{min-width:620px}
+.billing-kicker{margin:0 0 8px;color:var(--dim);font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.billing-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.billing-featured{border-color:rgba(var(--acid-rgb),.5);background:linear-gradient(145deg,rgba(var(--acid-rgb),.11),var(--bg2))}
+.dedicated-plan{display:flex;align-items:center;justify-content:space-between;gap:22px;margin-top:16px;border-color:rgba(var(--hot-rgb),.4)}
+.dedicated-plan>div:first-child{max-width:64ch}.dedicated-plan .billing-actions{flex:0 0 auto}
+.stripe-modal{position:fixed;inset:0;z-index:1000}.stripe-backdrop{position:absolute;inset:0;background:#09070dcc;backdrop-filter:blur(5px)}
+.stripe-dialog{position:relative;width:min(720px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto;margin:14px auto;padding:20px;background:var(--bg);border:1px solid var(--line-strong);border-radius:18px;box-shadow:0 28px 90px #000b}
+.stripe-dialog header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.stripe-dialog h2{font-size:24px;margin:0 0 12px}
+.stripe-close{border:0;background:transparent;color:var(--dim);font-size:32px;line-height:1;cursor:pointer}.stripe-close:hover{color:var(--link-hover)}
+#stripe-checkout{min-height:80px}
+@media(max-width:700px){.dedicated-plan{display:block}.dedicated-plan .billing-actions{margin-top:16px}}
+</style>
+
+{{if .StripeConfigured}}<script src="/static/billing.js?v=20260803a"></script>{{end}}
+
+{{template "foot" .}}

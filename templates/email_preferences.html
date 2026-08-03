@@ -1,0 +1,22 @@
+{{template "head" .}}
+
+<main style="max-width:650px;margin:42px auto">
+  <p class="dim mono">ACCOUNT</p>
+  <h1 style="font-size:clamp(32px,5vw,46px)">Email preferences</h1>
+  <p class="lede">Choose whether to receive the six-part introduction to
+  mojojojo products and open-source projects. Billing, security, and other
+  essential account messages are separate.</p>
+  {{if .Message}}<div class="banner" role="status">{{.Message}}</div>{{end}}
+  <form method="post" class="panel" style="margin-top:24px">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer">
+      <input name="product_updates" type="checkbox" style="margin-top:6px;accent-color:var(--acid)"{{if .Enabled}} checked{{end}}>
+      <span><b>Product and open-source introduction</b><br>
+      <span class="dim">Six messages over 21 days: Studio, mojosub, mjj,
+      notebooks preview, open-source ports, and the API.</span></span>
+    </label>
+    <button class="btn" type="submit" style="margin-top:20px">Save preference</button>
+  </form>
+</main>
+
+{{template "foot" .}}

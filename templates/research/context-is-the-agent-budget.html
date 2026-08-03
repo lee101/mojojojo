@@ -1,0 +1,44 @@
+{{template "posthead" .}}
+
+<p>A coding agent can spend a surprising fraction of its useful context proving
+to itself that a repository contains files. The open-source
+<a href="https://github.com/lee101/mojojojo-agent">mojojojo agent</a>, called
+<code class="inl">mjj</code>, starts from the opposite assumption: search is a
+budgeting decision.</p>
+
+<div class="takeaway"><b>Return the few line ranges that can change the next
+decision.</b> A complete directory dump is not understanding; it is a bill the
+rest of the task has to pay.</div>
+
+<h2>Grounded results, not a second conversation</h2>
+
+<p><code class="inl">mjj search</code> combines exact matches, lexical ranking,
+and optional vector results. Every hit points back to a file and line range. The
+agent can read more when the evidence calls for it, but the first search does not
+pour the repository into the prompt.</p>
+
+<pre data-lang="shell">mjj search "where are API retries handled?" src --stats
+mjj exec "find the cause of the failing router test and fix it"</pre>
+
+<p>The same rule applies to skills. A project may contain several specialised
+workflows, but only their small metadata index is always present. The full
+<code class="inl">SKILL.md</code> enters context when the task actually matches.</p>
+
+<h2>A small tool surface is easier to audit</h2>
+
+<p>The agent has bounded file, search, patch, and execution tools. Execution can
+use the local process, a jail, mojosub, or mojojojo depending on what is available
+and safe. A resumable session records what happened without pretending that a
+model message is proof that a test passed.</p>
+
+<p>The project is early, working, and MIT licensed. Release archives include
+checksums; the binaries are not yet code-signed, so operating systems may ask for
+confirmation on first launch. The source and current limitations are visible in
+the repository rather than hidden behind the install command.</p>
+
+<div class="row">
+  <a class="btn" href="/agent">Install mjj</a>
+  <a class="btn ghost" href="https://github.com/lee101/mojojojo-agent">Read the source</a>
+</div>
+
+{{template "productpostfoot" .}}

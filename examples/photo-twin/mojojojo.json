@@ -1,0 +1,13 @@
+{
+  "name": "Photo Twin",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "compare": {
+      "language": "python",
+      "entrypoint": "functions/compare.py",
+      "packages": ["ImageHash==4.3.2", "Pillow>=11.0"],
+      "timeout_ms": 7000
+    }
+  }
+}

@@ -1,0 +1,298 @@
+{{template "head" .}}
+<link rel="stylesheet" href="/static/editor.css">
+
+<main class="ide" id="ide"
+  data-ms-per-credit="{{.Cfg.MsPerCredit}}"
+  data-ms-per-credit-gpu="{{.Cfg.MsPerCreditGPU}}"
+  data-signup-url="{{.Cfg.SignupURL}}"
+  data-login-url="/auth/login?next=/editor"
+  data-topup-url="{{.Cfg.TopUpURL}}"
+  data-signed-in="{{if .User}}true{{else}}false{{end}}">
+  <section class="ide-commandbar" aria-label="Editor controls">
+    <div class="document-title">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div>
+        <strong id="document-name">rolling_sharpe.py</strong>
+        <span id="save-state">local draft</span>
+      </div>
+    </div>
+
+    <div class="run-controls">
+      <label class="field compact">
+        <span>Runs on</span>
+        <select id="where" aria-label="Where to run the code">
+          <option value="auto">Auto · cheapest</option>
+          <option value="browser">Browser · free</option>
+          <option value="server">Server · billed</option>
+        </select>
+      </label>
+      <label class="field compact">
+        <span>Timeout</span>
+        <span class="number-field"><input type="number" id="timeout" value="30"
+          min="1" max="300" inputmode="numeric" aria-label="Timeout in seconds"><i>s</i></span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="gpu">
+        <span aria-hidden="true"></span>
+        GPU
+      </label>
+      <button class="run-button" id="run" type="button">
+        <span class="run-icon" aria-hidden="true">▶</span>
+        <span>Run</span>
+        <kbd>⌘ ↵</kbd>
+      </button>
+    </div>
+  </section>
+
+  <div class="workspace" id="workspace">
+    <aside class="rail pane" aria-label="Files and snippets">
+      <div class="pane-heading rail-heading">
+        <div>
+          <span class="eyebrow">Workspace</span>
+          <h1>Snippets</h1>
+        </div>
+        <button class="icon-button" id="new-snippet" type="button" aria-label="New snippet"
+          title="New snippet">＋</button>
+      </div>
+
+      <nav class="rail-sections" aria-label="Snippet sources">
+        <section class="rail-section">
+          <button class="section-toggle" type="button" aria-expanded="true"
+            aria-controls="example-list">
+            <span>Examples</span><span aria-hidden="true">⌄</span>
+          </button>
+          <div id="example-list" class="file-list">
+            <button class="file-item active" type="button" data-example="sharpe">
+              <span class="py-icon" aria-hidden="true">Py</span>
+              <span><b>rolling_sharpe.py</b><small>NumPy · native loop</small></span>
+            </button>
+            <button class="file-item" type="button" data-example="monte">
+              <span class="py-icon" aria-hidden="true">Py</span>
+              <span><b>monte_carlo.py</b><small>stdlib · CPU</small></span>
+            </button>
+            <button class="file-item" type="button" data-example="hello">
+              <span class="py-icon" aria-hidden="true">Py</span>
+              <span><b>hello_browser.py</b><small>free in browser</small></span>
+            </button>
+          </div>
+        </section>
+
+        <section class="rail-section">
+          <button class="section-toggle" type="button" aria-expanded="true"
+            aria-controls="saved-list">
+            <span>Saved locally <em id="saved-count">0</em></span><span aria-hidden="true">⌄</span>
+          </button>
+          <div id="saved-list" class="file-list">
+            <p class="rail-empty">Save a draft to keep it in this browser.</p>
+          </div>
+          <button class="rail-action" id="save-snippet" type="button">
+            <span aria-hidden="true">＋</span>
+            <span id="save-label">Save current snippet</span>
+            <kbd>Ctrl S</kbd>
+          </button>
+        </section>
+
+        <section class="rail-section upload-section">
+          <div class="section-label">Uploads</div>
+          <label class="upload-target" for="file-upload">
+            <span aria-hidden="true">⇧</span>
+            <b>Open a Python file</b>
+            <small>.py or text · stays local</small>
+          </label>
+          <input id="file-upload" class="visually-hidden" type="file"
+            accept=".py,.txt,text/plain,text/x-python" aria-label="Open a Python file">
+        </section>
+      </nav>
+
+      {{if .User}}
+      <a class="account-card signed-in" href="/credits">
+        <span class="eyebrow">Available balance</span>
+        <strong>{{.Credits}} credits</strong>
+        <small>View usage and top up →</small>
+      </a>
+      {{else}}
+      <div class="account-card">
+        <span class="local-badge">Free local runtime</span>
+        <strong>No account needed</strong>
+        <p>This code can run privately in your browser with WebAssembly.</p>
+        <a href="{{.Cfg.SignupURL}}">Unlock servers + GPU</a>
+      </div>
+      {{end}}
+    </aside>
+
+    <div class="splitter splitter-left" role="separator" aria-label="Resize snippet rail"
+      aria-orientation="vertical" aria-valuemin="170" aria-valuemax="380"
+      aria-valuenow="248" tabindex="0" data-splitter="left"></div>
+
+    <section class="editor-pane pane" aria-label="Python editor">
+      <div class="editor-tabs" role="tablist" aria-label="Open files">
+        <button class="editor-tab" type="button" role="tab" aria-selected="true">
+          <span class="py-icon" aria-hidden="true">Py</span>
+          <span id="tab-name">rolling_sharpe.py</span>
+          <span class="dirty-mark" id="dirty-mark" aria-label="Unsaved changes">●</span>
+        </button>
+        <span class="editor-spacer"></span>
+        <div class="editor-actions" aria-label="File actions">
+          <button id="share-code" type="button" title="Copy a private share link">Share</button>
+          <button id="download-code" type="button" title="Download this Python file">Download</button>
+          <button class="icon-button" id="copy-code" type="button" aria-label="Copy editor code"
+            title="Copy code">⧉</button>
+        </div>
+      </div>
+
+      <div class="editor-surface">
+        <div class="line-numbers" id="line-numbers" aria-hidden="true"></div>
+        <div class="code-shell" id="code-shell">
+          <textarea id="code" aria-label="Python source code" aria-describedby="editor-help"
+            spellcheck="false" autocapitalize="off" autocomplete="off"
+            wrap="off">{{.Example}}</textarea>
+        </div>
+      </div>
+
+      <button class="editor-diagnostic" id="editor-diagnostic" type="button" hidden
+        aria-label="Jump to syntax error">
+        <strong id="diagnostic-kind">SyntaxError</strong>
+        <span id="diagnostic-message"></span>
+        <span id="diagnostic-location" class="mono"></span>
+      </button>
+
+      <div class="editor-statusbar">
+        <span id="planline"><span class="status-dot" aria-hidden="true"></span>Planning run…</span>
+        <span id="pkgline">Python · no imports</span>
+        <span id="cursor-position">Ln 1, Col 1</span>
+        <span>Spaces: 4</span>
+        <span id="editor-help">Ctrl-S saves · Tab indents · Ctrl-/ comments</span>
+      </div>
+    </section>
+
+    <div class="splitter splitter-right" role="separator" aria-label="Resize result panel"
+      aria-orientation="vertical" aria-valuemin="300" aria-valuemax="620"
+      aria-valuenow="410" tabindex="0" data-splitter="right"></div>
+
+    <aside class="results pane" aria-label="Run results">
+      <section class="cost-card" aria-labelledby="cost-title">
+        <div>
+          <span class="eyebrow" id="cost-title">This execution</span>
+          <strong id="cost-value">$0</strong>
+          <span id="cost-credits">free in browser</span>
+        </div>
+        <div class="cost-route">
+          <span id="route-badge" class="badge browser">Browser</span>
+          <small id="cost-detail">No credits used</small>
+        </div>
+      </section>
+
+      <div class="result-tabs" role="tablist" aria-label="Right panel">
+        <button id="output-tab" class="result-tab active" type="button" role="tab"
+          aria-selected="true" aria-controls="output-panel">Output</button>
+        <button id="agent-tab" class="result-tab" type="button" role="tab"
+          aria-selected="false" aria-controls="agent-panel" tabindex="-1">Agent</button>
+      </div>
+
+      <div id="output-panel" class="result-panel" role="tabpanel"
+        aria-labelledby="output-tab">
+        <section class="output-card">
+        <div class="pane-heading output-heading">
+          <div>
+            <span class="eyebrow">Console</span>
+            <h2>Output</h2>
+          </div>
+          <div class="output-actions">
+            <button class="icon-button" id="copy-output" type="button"
+              aria-label="Copy output" title="Copy output">⧉</button>
+            <button class="icon-button" id="clear" type="button"
+              aria-label="Clear output" title="Clear output">⌫</button>
+          </div>
+        </div>
+        <div class="run-meta" id="run-meta">
+          <span class="badge idle" id="run-status">Ready</span>
+          <span id="wall-time">— wall</span>
+          <span id="billed-time">— billed</span>
+          <span class="badge interpreted" id="native-badge">Not run</span>
+        </div>
+        <div id="out" class="console" role="log" aria-live="polite" aria-atomic="false">
+          <pre class="stdout">Ready. Run the program with <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>.</pre>
+          <pre class="stderr" hidden></pre>
+        </div>
+        <div class="cta" id="cta" hidden></div>
+        </section>
+
+        <section class="history-card">
+        <div class="pane-heading compact-heading">
+          <div>
+            <span class="eyebrow">Current session</span>
+            <h2>Run history</h2>
+          </div>
+          <span id="session">0 runs · 0 ms</span>
+        </div>
+        <div class="history-scroll">
+          <table>
+            <thead><tr><th>Run</th><th>Route</th><th>Wall</th><th>Billed</th><th>Cost</th></tr></thead>
+            <tbody id="history"><tr class="empty-row"><td colspan="5">No executions yet</td></tr></tbody>
+          </table>
+        </div>
+        </section>
+
+        <details class="snippet-card">
+        <summary>
+          <span><span class="eyebrow">Python SDK</span>Same run from your code</span>
+          <span aria-hidden="true">⌄</span>
+        </summary>
+        <div class="snippet-body">
+          <pre id="snippet" data-lang="python"></pre>
+          <button class="copy-snippet" id="copy-snippet" type="button">Copy snippet</button>
+        </div>
+        </details>
+      </div>
+
+      <section id="agent-panel" class="agent-panel result-panel" role="tabpanel"
+        aria-labelledby="agent-tab" hidden>
+        <div class="pane-heading agent-heading">
+          <div>
+            <span class="eyebrow">Coding assistant</span>
+            <h2>Agent</h2>
+          </div>
+          <span class="badge idle" id="agent-status">Ready</span>
+        </div>
+
+        <div class="account-card agent-auth" id="agent-auth" {{if .User}}hidden{{end}}>
+          <span class="local-badge">Account required</span>
+          <strong>The agent uses metered compute</strong>
+          <p>Sign in when you want help changing this file. The local Python editor remains free.</p>
+          <div class="agent-auth-actions">
+            <a href="{{.Cfg.SignupURL}}">Create an account</a>
+            <a href="/auth/login?next=/editor">Sign in</a>
+          </div>
+        </div>
+
+        <div class="agent-workspace" id="agent-workspace" {{if not .User}}hidden{{end}}>
+          <form class="agent-form" id="agent-form">
+            <label for="agent-instruction">What should the agent do?</label>
+            <textarea id="agent-instruction" rows="4"
+              placeholder="Explain the change you want in this file…"
+              required></textarea>
+            <div class="agent-form-actions">
+              <span>Edits to the open file are mirrored here.</span>
+              <button class="agent-stop" id="agent-stop" type="button" disabled>Stop</button>
+              <button class="agent-start" id="agent-start" type="submit">Run agent</button>
+            </div>
+          </form>
+
+          <div class="agent-meta">
+            <span id="agent-usage">0 tokens</span>
+            <span id="agent-file-status" role="status" aria-live="polite">No editor changes</span>
+          </div>
+          <div id="agent-stream" class="agent-stream" role="log" aria-live="polite"
+            aria-atomic="false" aria-busy="false">
+            <p class="agent-empty">Ask for an explanation, a fix, or a focused edit.</p>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<div class="editor-toast" id="editor-toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="/static/editor.js?v=20260802b"></script>
+{{template "foot" .}}

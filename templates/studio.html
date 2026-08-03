@@ -1,0 +1,99 @@
+{{template "head" .}}
+<link rel="stylesheet" href="/static/vendor/codemirror/lib/codemirror.css?v=20260802">
+<link rel="stylesheet" href="/static/vendor/codemirror/theme/base16-dark.css?v=20260802">
+<link rel="stylesheet" href="/static/studio.css?v=20260803c">
+<main class="studio" id="studio" data-signed-in="{{if .User}}true{{else}}false{{end}}">
+  <header class="studio-bar">
+    <div class="studio-brand"><strong>Studio</strong><span id="save-state" hidden>browser draft</span></div>
+    <select id="project-picker" aria-label="Project"><option value="">New project</option></select>
+    <button class="sbtn" id="new-project">New</button>
+    <button class="sbtn" id="save-project">Save</button>
+    <select id="version-picker" aria-label="Saved version" hidden><option value="">Mainline</option></select>
+    <button class="sbtn" id="share-project" hidden>Copy share link</button>
+    <button class="sbtn" id="download-project" title="Save and download project ZIP">Download ZIP</button>
+    <button class="sbtn primary" id="publish-project">Publish</button>
+    <button class="sbtn" id="submit-project">Submit to showcase</button>
+    <button class="sbtn agent-toggle" id="toggle-agent" aria-expanded="false" aria-controls="agent-sidebar">Agent</button>
+    <a class="sbtn" id="open-live" href="#" target="_blank" hidden>Open live ↗</a>
+  </header>
+  <div class="studio-workspace">
+    <aside class="files-pane">
+      <div class="pane-title"><span>Files</span><button id="add-file" title="Add file">＋</button></div>
+      <nav id="file-tree" aria-label="Project files"></nav>
+      <div class="template-box">
+        <label for="template-picker">Start from</label>
+        <select id="template-picker">
+          <option value="snake">Streaming Snake</option>
+          <option value="png-webp">PNG → WebP</option>
+          <option value="json-csv">JSON → CSV</option>
+          <option value="markdown">Markdown cleaner</option>
+          <option value="text-case">Text case + slug</option>
+          <option value="base64">Base64 + UTF-8</option>
+          <option value="color">Color converter</option>
+          <option value="mojo-text">Mojo text stats</option>
+          <option value="example:qr-forge">QR Forge</option>
+          <option value="example:cron-lens">Cron Lens</option>
+          <option value="example:phone-passport">Phone Passport</option>
+          <option value="example:photo-twin">Photo Twin</option>
+          <option value="blank">Blank app</option>
+        </select>
+        <button class="sbtn" id="load-template">Load template</button>
+      </div>
+    </aside>
+    <section class="code-pane">
+      <div class="pane-title"><span id="active-path">index.html</span><button id="delete-file">Delete</button></div>
+      <textarea id="source" spellcheck="false" aria-label="Source code"></textarea>
+      <div class="statusline"><span id="language">HTML</span><span id="cursor">Ln 1, Col 1</span></div>
+    </section>
+    <section class="preview-pane">
+      <div class="preview-tabs" role="tablist">
+        <button class="active" data-tab="preview">Preview</button>
+        <button data-tab="function">Functions</button>
+      </div>
+      <div class="tab-panel active" id="preview-panel"><iframe id="preview" sandbox="allow-scripts allow-forms allow-downloads" allow="clipboard-write" title="App preview"></iframe></div>
+      <div class="tab-panel" id="function-panel">
+        <label>Function <select id="function-name"></select></label>
+        <label>JSON request<textarea id="function-input" spellcheck="false">{"body":{"text":"Hello from Studio"}}</textarea></label>
+        <button class="sbtn primary" id="run-function">Run function</button>
+        <pre id="function-output">Save a project, then test its backend here.</pre>
+      </div>
+    </section>
+  </div>
+  <aside class="agent-sidebar" id="agent-sidebar" aria-label="Studio agent" hidden>
+    <header class="agent-head">
+      <div><span class="agent-kicker">METERED BUILD AGENT</span><strong>Build with Agent</strong></div>
+      <button class="agent-close" id="close-agent" aria-label="Close agent">×</button>
+    </header>
+    <div class="agent-thread" id="agent-output" aria-live="polite">
+      <div class="agent-empty"><strong>Ask for a working change.</strong><p>The agent receives every open project file and returns reviewable replacements. Runs spend your mojojojo credits.</p></div>
+    </div>
+    <div class="agent-compose">
+      <textarea id="agent-prompt" placeholder="Add a scoreboard and make the lobby feel more playful…"></textarea>
+      <div class="agent-options">
+        <label>Model<select id="agent-model">
+          <option value="gpt-5.6-luna">Luna · fast default</option>
+          <option value="gpt-5.6-sol">Sol · strongest</option>
+        </select></label>
+        <label>Effort<select id="agent-effort"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+      </div>
+      <div class="agent-actions">
+        <button class="sbtn primary" id="ask-agent">Build</button>
+        <button class="sbtn" id="stop-agent" hidden>Stop</button>
+        <button class="sbtn" id="apply-agent" disabled>Apply changes</button>
+      </div>
+      <div class="agent-meter"><span id="agent-status">Ready</span><a href="/credits" id="agent-credits">Credits ↗</a></div>
+    </div>
+  </aside>
+</main>
+<div id="studio-toast" role="status" hidden></div>
+<script src="/static/vendor/codemirror/lib/codemirror.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/mode/xml/xml.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/mode/javascript/javascript.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/mode/css/css.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/mode/htmlmixed/htmlmixed.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/mode/python/python.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/addon/edit/closebrackets.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/addon/edit/matchbrackets.js?v=20260802"></script>
+<script src="/static/vendor/codemirror/addon/selection/active-line.js?v=20260802"></script>
+<script type="module" src="/static/studio.js?v=20260803d"></script>
+{{template "foot" .}}

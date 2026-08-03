@@ -1,0 +1,75 @@
+{{template "head" .}}
+
+<h1>Vector search</h1>
+<p class="lede">Managed vector retrieval with durable collections, exact search,
+and accelerated performance search behind one API.</p>
+
+{{if .User}}
+<div id="vector-app">
+  <style>#vector-app label{display:block;margin:10px 0;color:var(--dim)}#vector-app input,#vector-app select,#vector-app textarea{width:100%;margin-top:5px;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px}#vector-app textarea{min-height:92px;resize:vertical}#vector-app form .btn{margin-top:8px}</style>
+  <div class="grid3">
+    <form class="panel" id="vector-project-form">
+      <h3 style="margin-top:0">New vector project</h3>
+      <label>Name<br><input name="name" required maxlength="80" placeholder="Product knowledge"></label>
+      <label>Placement<br><select name="tier"><option value="exact">Exact CPU</option><option value="performance">Performance auto</option></select></label>
+      <button class="btn" type="submit">Create project</button>
+    </form>
+    <form class="panel" id="vector-upsert-form">
+      <h3 style="margin-top:0">Index a document</h3>
+      <label>Project<br><select name="project_id" class="vector-project-select" required></select></label>
+      <label>Document ID<br><input name="document_id" required maxlength="128" placeholder="docs-101"></label>
+      <label>Text<br><textarea name="text" required maxlength="32768" placeholder="Text to embed and retrieve…"></textarea></label>
+      <button class="btn" type="submit">Index document</button>
+    </form>
+    <form class="panel" id="vector-search-form">
+      <h3 style="margin-top:0">Search</h3>
+      <label>Project<br><select name="project_id" class="vector-project-select" required></select></label>
+      <label>Query<br><textarea name="query" required maxlength="32768" placeholder="What are you looking for?"></textarea></label>
+      <button class="btn" type="submit">Search</button>
+    </form>
+  </div>
+  <p id="vector-status" class="dim" role="status"></p>
+  <h2>Projects</h2>
+  <div id="vector-project-list" class="grid2"><div class="panel dim">Loading projects…</div></div>
+  <h2>Results</h2>
+  <div id="vector-results" class="panel dim">Run a search to see ranked matches.</div>
+
+  <h2 id="reserved-capacity">Reserved capacity</h2>
+  <div class="panel" id="vector-capacity">
+    <div class="row" style="margin-top:0;align-items:flex-start">
+      <div>
+        <h3 style="margin:0 0 6px">Reserved vector performance</h3>
+        <p class="dim" id="vector-capacity-price">Loading current rate…</p>
+      </div>
+      <button class="btn" id="vector-capacity-reserve" type="button" disabled>Reserve</button>
+    </div>
+    <p class="dim">Billed one hour in advance and renewed hourly. Normal query rates still apply.
+    Cancel any time to stop the next renewal.</p>
+    <div id="vector-capacity-list" class="dim">Loading reservations…</div>
+  </div>
+</div>
+<script src="/static/vector.js" defer></script>
+{{else}}
+<div class="panel" style="max-width:640px">
+  <h2 style="margin-top:0">Create a retrieval project</h2>
+  <p class="dim">The same mojojojo account and API key owns your source documents,
+  indexes, usage, and credits. No separate database account.</p>
+  <div class="row"><a class="btn" href="/auth/signup?next=/vector">Create account — $1 free</a>
+  <a class="btn ghost" href="/auth/login?next=/vector">Sign in</a></div>
+</div>
+{{end}}
+
+<h2>API</h2>
+<pre data-lang="bash"><code>curl https://mojojojo.cc/v1/vector/projects/vec_PROJECT/upsert \
+  -H "Authorization: Bearer mj_live_…" -H "Content-Type: application/json" \
+  -d '{"documents":[{"id":"guide","text":"Mojo compiles fast kernels."}]}'
+
+curl https://mojojojo.cc/v1/vector/projects/vec_PROJECT/search \
+  -H "Authorization: Bearer mj_live_…" -H "Content-Type: application/json" \
+  -d '{"query":"fast compiled code","limit":10}'</code></pre>
+
+<h2>Choose exact or performance search</h2>
+<p>Exact projects provide predictable exhaustive retrieval. Performance projects
+automatically use accelerated search as collections grow.</p>
+
+{{template "foot" .}}

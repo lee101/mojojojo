@@ -1,0 +1,5 @@
+{
+  "name": "mojojojo-fractal",
+  "runtime": "static",
+  "entrypoint": "index.html"
+}

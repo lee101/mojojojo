@@ -1,0 +1,13 @@
+{
+  "name": "Cron Lens",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "expand": {
+      "language": "python",
+      "entrypoint": "functions/expand.py",
+      "packages": ["croniter==6.2.4"],
+      "timeout_ms": 5000
+    }
+  }
+}

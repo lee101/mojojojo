@@ -1,0 +1,6 @@
+mjj is the open-source mojojojo coding agent. It searches before filling model context, returns line-anchored evidence, and loads a full skill only when needed.
+
+Install or try it: {{.SiteBaseURL}}/agent?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=agent
+
+Why context is the real budget: {{.SiteBaseURL}}/research/context-is-the-agent-budget?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=agent
+Source: https://github.com/lee101/mojojojo-agent

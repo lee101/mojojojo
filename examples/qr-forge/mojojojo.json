@@ -1,0 +1,13 @@
+{
+  "name": "QR Forge",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "generate": {
+      "language": "python",
+      "entrypoint": "functions/generate.py",
+      "packages": ["qrcode==8.2"],
+      "timeout_ms": 5000
+    }
+  }
+}

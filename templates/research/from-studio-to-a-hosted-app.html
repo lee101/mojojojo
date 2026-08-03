@@ -1,0 +1,56 @@
+{{template "posthead" .}}
+
+<p>Studio is the browser workspace for the part between “I have an idea” and
+“somebody else can open it.” A project can contain an ordinary static frontend
+and metered Python or Mojo functions. You edit both in one place, test a function
+against a real request, preview the result, and publish a version.</p>
+
+<div class="takeaway"><b>The deployment unit is a project, not a machine.</b>
+Static files go to the delivery layer. Functions run only when called and settle
+their measured execution against the same credit balance as the editor and API.</div>
+
+<h2>A small app has three useful boundaries</h2>
+
+<ol>
+  <li><b>Files</b> are source. Studio keeps them together and records immutable
+  versions when you publish.</li>
+  <li><b>Preview</b> is disposable. Test a function or frontend change without
+  silently changing the public deployment.</li>
+  <li><b>Publish</b> is explicit. A successful version gets a public URL; the
+  previous version remains a record rather than becoming a mystery.</li>
+</ol>
+
+<p>That separation matters more than a long feature list. Preview should be safe
+to break. Publishing should be reviewable. A hosted function should never turn
+into a forgotten VM invoice.</p>
+
+<h2>Start with the smallest complete thing</h2>
+
+<p>Open <a href="/studio">Studio</a>, choose an app or tool template, and keep the
+first version boring: an <code class="inl">index.html</code>, a little CSS or
+JavaScript, and one server-side function only if the browser cannot do the job.
+Studio's agent can propose a replacement, but applying it remains your action.</p>
+
+<pre>project/
+  index.html          # delivered as a static asset
+  functions/
+    score.py          # called only when the app needs it</pre>
+
+<p>The same project API is available outside the browser. Studio is not a
+separate hosting system; it is the visual client for the project, version,
+deployment, storage, and function APIs documented in <a href="/docs">the API
+guide</a>.</p>
+
+<h2>What is live now</h2>
+
+<ul>
+  <li>multi-file projects, starter templates, editing, and preview;</li>
+  <li>Python and Mojo function testing through the normal execution path;</li>
+  <li>saved versions, publishing, public URLs, and a reviewed showcase;</li>
+  <li>an agent sidebar that presents changes before they are applied.</li>
+</ul>
+
+<p>Notebooks are a separate workflow and are still a preview. Studio is the
+place to build and publish today.</p>
+
+{{template "productpostfoot" .}}

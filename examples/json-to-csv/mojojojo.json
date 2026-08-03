@@ -1,0 +1,12 @@
+{
+  "name": "JSON to CSV",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "convert": {
+      "language": "python",
+      "entrypoint": "functions/convert.py",
+      "timeout_ms": 3000
+    }
+  }
+}

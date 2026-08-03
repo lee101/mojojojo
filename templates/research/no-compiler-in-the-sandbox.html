@@ -1,0 +1,224 @@
+{{template "posthead" .}}
+
+<p>mojojojo compiles your numeric loops to native code and caches the result by
+content hash, so the second person to submit a kernel gets native speed on their
+first call. That sentence contains a security problem large enough to sink the
+whole design:</p>
+
+<blockquote>If untrusted code can cause a shared library to be written, and
+untrusted code can load shared libraries out of a shared cache, then one tenant
+can put machine code in another tenant's process.</blockquote>
+
+<p>Content addressing does not save you by itself. A hash tells you which bytes
+you asked for; it says nothing about who produced them or whether the
+<code class="inl">.so</code> sitting at that path is really the compilation of
+that source.</p>
+
+<h2>The rule</h2>
+
+<div class="takeaway">
+<b>There is no compiler inside the sandbox, and no writable shared state.</b>
+Every artifact in the shared cache was produced by <em>our</em> compiler, from
+the exact source its content hash names.
+</div>
+
+<p>Which raises the obvious question: mojosub decides what to compile at
+<em>runtime</em>, from the types it observes. How does a build happen in a place
+that cannot build?</p>
+
+<h2>A compile becomes a request</h2>
+
+<p><code class="inl">MOJOSUB_MOJO</code> points at a program that is not a
+compiler. It accepts the real thing's arguments, writes the generated Mojo into
+the run's own request directory, and fails:</p>
+
+<pre data-lang="python">def main() -> int:
+    argv = sys.argv[1:]
+    if "--version" in argv:
+        # mojosub hashes this into the cache key, so it has to be the version
+        # of the compiler that will actually build the request.
+        print(os.environ.get("MOJOJOJO_MOJO_VERSION", "mojojojo-host-compiler"))
+        return 0
+    source = next((a for a in argv[1:] if a.endswith(".mojo")), None)
+    shutil.copyfile(source, os.path.join(requests, uuid.uuid4().hex + ".mojo"))
+    print("mojojojo: queued for compilation on the host; this kernel runs "
+          "natively from the next execution onward", file=sys.stderr)
+    return 1</pre>
+
+<p>Failing is the correct behaviour, and it is free: mojosub already treats a
+toolchain failure as "stay on CPython", because that path has to work anyway for
+every function outside the compilable subset. So the sandbox needs no special
+case. The user's program runs, correctly, at interpreted speed, and says so in
+its trace.</p>
+
+<p>Afterwards the host — as the service user, outside the jail — compiles what
+was requested and puts the result in the shared cache. The next run to hash that
+same source finds a library that our compiler built.</p>
+
+<h3>Only the return type crosses</h3>
+
+<p>A run does learn one useful thing that only running the function can reveal:
+its return type. An unannotated <code class="inl">def kernel(n):</code> has none,
+and the transpiler needs one before it can emit a signature. So promotion carries
+the learned type across and <b>drops every verdict</b> —
+<code class="inl">verified</code>, <code class="inl">raced</code>,
+<code class="inl">retired</code>.</p>
+
+<p>That asymmetry is the whole game. A return type is a fact about the program,
+and a wrong one produces a unit that does not compile or does not match, which
+fails safely. A verdict is a <em>judgement</em>: "this compiled variant agrees
+with CPython", "this one is faster". Letting one tenant write those into shared
+state means letting them tell another tenant's run that a wrong answer is fine.
+So every run re-checks its own first native result against CPython, even when a
+thousand runs before it already did.</p>
+
+<p>It costs one interpreted call per signature. It is the least interesting
+optimization in the system to give up.</p>
+
+<h2>Four isolation bugs we shipped</h2>
+
+<p>All four of these were live at some point. None was found by reasoning about
+the design; each was found by testing the property directly, and each now has a
+test that fails if it comes back.</p>
+
+<h3>1. Resource limits were being silently discarded</h3>
+
+<p>Limits were set before launching the jail — memory, CPU seconds, file size,
+process count — which is the obvious place. But the jail runs under
+<code class="inl">sudo</code>, and PAM resets the target user's limits on the way
+through. Every limit was gone by the time user code started.</p>
+
+<p>They are now applied <em>inside</em> the jail, in the child, before a single
+line of the program is parsed. And only ever downward:</p>
+
+<pre data-lang="python">soft, hard = resource.getrlimit(what)
+# Never raise a limit, only lower it: a warm slot may already be
+# more restricted than this run asked for.
+target = value if hard in (resource.RLIM_INFINITY,) else min(value, hard)
+resource.setrlimit(what, (target, target))</pre>
+
+<p>Two related things we learned the hard way. <code class="inl">RLIMIT_AS</code>
+breaks numpy — OpenBLAS reserves an enormous amount of virtual address space per
+thread and a virtual-size cap kills it long before it touches real memory; the
+limit that works is <code class="inl">RLIMIT_DATA</code>. And
+<code class="inl">RLIMIT_NPROC</code> is per-uid, not per-process, so applying it
+before the jail has switched users limits the <em>service</em>.</p>
+
+<h3>2. Caller-supplied environment merged the wrong way</h3>
+
+<p>The API lets you pass environment variables. They were merged over ours,
+which means a caller could set <code class="inl">MOJOSUB_MOJO</code>,
+<code class="inl">MOJOSUB_CACHE</code>, <code class="inl">PYTHONPATH</code> or
+<code class="inl">LD_PRELOAD</code> and take the sandbox apart from the inside.
+Caller variables now merge <em>under</em> a reserved set that always wins.</p>
+
+<p>A related fact that cost an afternoon: <code class="inl">sudo</code> scrubs
+the environment, so the jail rebuilds it with
+<code class="inl">/usr/bin/env -i K=V …</code> inside the namespace. Without that
+the program runs but has no trace file, no acceleration and no timings — it
+works, and quietly does none of what it is for.</p>
+
+<h3>3. The hidden tree was too hidden</h3>
+
+<p>The jail hides <code class="inl">/home</code>, <code class="inl">/root</code>,
+<code class="inl">/opt</code>, <code class="inl">/var/log</code> and everything
+under the data disks by mounting an empty tmpfs over them, then binding back a
+short allowlist. Two mistakes:</p>
+
+<ul>
+  <li>The covering tmpfs was mode <code class="inl">000</code>. Where an
+  allowlisted path sits <em>underneath</em> one, 000 blocks traversal and the
+  path is unreachable — the interpreter disappears. It is
+  <code class="inl">0111</code>: traversable, not listable.</li>
+  <li>Sources have to be staged aside <em>before</em> their parent is
+  overmounted. Bind a path onto itself after its parent is covered and you bind
+  the empty replacement over the real thing.</li>
+</ul>
+
+<p>The allowlist lives in the root-owned jail script, which is the only place it
+is trustworthy, and it is four entries long. Adding one is a security
+decision.</p>
+
+<p>A related trap, since the sandbox user has to be able to execute the
+interpreter: uv's managed interpreters default to
+<code class="inl">~/.local/share/uv</code>, inside the hidden
+<code class="inl">/home</code>. <code class="inl">UV_PYTHON_INSTALL_DIR</code>
+has to point somewhere world-readable or every jailed run dies with
+<em>Permission denied</em> on Python itself.</p>
+
+<h3>4. Cache seeding was whole-cache</h3>
+
+<p>A run gets a private directory of symlinks into the shared cache. It was being
+seeded with everything, so a run could enumerate every kernel every other tenant
+had ever compiled — a side channel telling you what other people are computing.
+Seeding is now per-program: a run is handed links for the units its own source
+hashes to, and nothing else.</p>
+
+<h2>What separates two runs is a name, not a mode</h2>
+
+<p>Worth stating plainly because it looks like a mistake in the source. The pool
+socket directory is <code class="inl">0666</code>, and
+<code class="inl">pool/</code> and <code class="inl">runs/</code> are
+<code class="inl">0733</code> — traversable, not listable.</p>
+
+<p>They have to be. A warm slot establishes its mount namespace <em>before</em>
+the runs it will serve exist, so the runs root itself must be bound in; a per-run
+bind would be invisible to it. What keeps one run out of another is that run
+directories are named with 32 random hex digits and the directory cannot be
+listed. Unguessable names are the mechanism. The mode is what makes them
+work.</p>
+
+<h2>Why warm interpreters do not leak</h2>
+
+<p>Cold start is about 220 ms and most of it is interpreter startup, the sandbox,
+and importing numpy. So runs land on a pre-warmed interpreter that already has
+all three, and each run is a <code class="inl">fork()</code> of it — about 60 ms
+end to end.</p>
+
+<p>A pool of processes reused across tenants is exactly the shape of an
+information leak, so: the fork is the unit of reuse, not the process. A run
+mutates its own copy-on-write address space and exits. Nothing is handed back.
+The parent never executes user code.</p>
+
+<p>That warmth caused one bug worth knowing about, though it is a correctness one
+rather than a security one. A pool slot imports mojosub before any run exists, so
+the cache root and the memoised toolchain lookup bind to the <em>pool's</em>
+environment. Without re-reading them per run, every kernel looks new for ever and
+nothing is ever native — the fast path silently switches itself off, and the only
+symptom is that <code class="inl">cache.compiled</code> stays 0.</p>
+
+<h2>What billing has to do with containment</h2>
+
+<p>One more, because it is the same class of thinking. We bill per millisecond,
+which makes the clock an attack surface in the honest direction: whatever we
+choose to include, users pay for.</p>
+
+<p>So the compiler is not billed. It runs on our clock — the clock stops before
+the warm phase where in-flight compiles finish, and compile time that
+<em>overlapped</em> the run is subtracted, capped at half of it so a compiling run
+is discounted rather than given away. Queue time, environment builds and cold
+start are not billed either.</p>
+
+<p>That is not generosity, it is the only defensible line: none of it is work the
+user asked for, and all of it is work we chose to do to make the next run
+faster.</p>
+
+<h2>The test that matters most</h2>
+
+<p><code class="inl">runner/tests/test_platform.py</code> pins the promotion
+rule: the learned return type crosses, every verdict is dropped. It is the one
+place where a plausible-looking refactor — "why re-verify what a thousand runs
+already verified?" — turns a performance optimization into a mechanism for one
+tenant to certify another tenant's wrong answer.</p>
+
+<p>If a change makes those tests awkward, the change is wrong.</p>
+
+<p class="dim repro">The jail is <code class="inl">runner/mojojail</code>, a
+root-owned shell script installed by <code class="inl">deploy.sh</code>; it is
+the only thing here that runs as root and all it does with that is drop
+privileges. The boundary is in <code class="inl">runner/hostcompile.py</code> and
+<code class="inl">runner/mojo_stub.py</code>, and the isolation properties above
+are tested in <code class="inl">runner/tests/test_security.py</code> and
+<code class="inl">security_test.go</code>.</p>
+
+{{template "postfoot" .}}

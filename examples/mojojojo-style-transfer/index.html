@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tiny style transfer · mojojojo</title>
+<style>body{max-width:900px;margin:3rem auto;padding:0 1rem;background:#121019;color:#d8d2df;font:16px system-ui}canvas{max-width:100%;border:1px solid #493f55;border-radius:12px}button,input{margin:.7rem .5rem .7rem 0}button{padding:.7rem 1rem;background:#98d8aa;border:0;border-radius:8px}</style>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+</head><body><h1>Tiny ONNX style transfer</h1><p>The model is an immutable project asset. Inference stays in your browser.</p>
+<input id="file" type="file" accept="image/*"><button id="run" disabled>Apply style</button><p id="status">Loading 330-byte model…</p>
+<canvas id="canvas" width="512" height="512"></canvas><script src="app.js"></script></body></html>

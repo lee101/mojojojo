@@ -1,0 +1,46 @@
+{{template "posthead" .}}
+
+<p><b>This is a product preview, not a launch announcement.</b> Mojojojo
+Notebooks is being designed around the open <code class="inl">mojo-notebook</code>
+runtime. The local document remains plain Markdown; the hosted layer adds
+revisions, sharing, sessions, quotas, and audited actions.</p>
+
+<p>The current boundary and non-negotiable tests live in
+<a href="https://github.com/lee101/mojojojo/blob/main/docs/notebooks.md">the
+notebook design document</a>.</p>
+
+<p>The difficult part is not drawing cells. It is deciding what an AI action is
+allowed to change and which execution path a cell uses.</p>
+
+<div class="takeaway"><b>An agent proposes; the notebook records your
+decision.</b> Generated code is shown as a diff. It does not mutate a cell or run
+it until you apply the edit.</div>
+
+<h2>One execution path</h2>
+
+<p>A notebook cell should use the same planner, sandbox, compiled-code cache, and
+billing ledger as an editor or API run. Python can stay in the browser when it
+fits. Packages, Mojo, GPU work, and longer jobs can be placed remotely. Creating
+a second “notebook executor” would create two security boundaries and two answers
+to the question “what did this run cost?”</p>
+
+<h2>Outputs are not source</h2>
+
+<p>Source revisions are immutable. Large outputs are separate content-addressed
+artifacts. Re-running a parent marks descendants stale instead of rewriting
+history, and applying an AI proposal creates an ordinary reviewed revision.</p>
+
+<h2>Plugins declare capabilities</h2>
+
+<p>Importers, renderers, and actions are the three planned plugin points. A
+plugin declares capabilities such as network or artifact access and the host
+must allow them. Plugins do not receive account secrets, database handles, or a
+live kernel object. Renderer HTML is treated as untrusted.</p>
+
+<p>The first intended slice is deliberately narrow: create and revise notebooks,
+import Marimo, edit Markdown/Python/Mojo cells, run through the existing planner,
+and offer explain/fix/generate actions as reviewable diffs. We will call it live
+when those boundaries have tenant-isolation, revision-conflict, sanitisation, and
+billing-parity tests.</p>
+
+{{template "productpostfoot" .}}

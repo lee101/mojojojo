@@ -1,0 +1,70 @@
+{{template "head" .}}
+
+<h1>API keys</h1>
+{{if not .User}}
+  <p class="lede">Keys belong to your mojojojo account, and so does the balance they
+  spend. Creating one takes a minute and comes with
+  <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b> of compute.</p>
+  <div class="row">
+    <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+    <a class="btn ghost" href="/auth/login?next=/keys">Sign in</a>
+  </div>
+{{else}}
+<p class="lede">A key authenticates <code class="inl">POST /v1/run</code> and spends
+this account's credits. Shown once, stored hashed, revocable here.</p>
+
+<div class="panel">
+  <div class="row">
+    <input id="name" placeholder="what is this key for?" style="flex:1;min-width:220px;
+      background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+    <button class="btn" id="create">Create key</button>
+  </div>
+  <pre id="fresh" style="display:none"></pre>
+</div>
+
+{{if .Keys}}
+<table style="margin-top:24px">
+  <tr><th>Name</th><th>Prefix</th><th>Created</th><th>Last used</th><th></th></tr>
+  {{range .Keys}}
+  <tr data-id="{{.ID}}">
+    <td>{{.Name}}</td>
+    <td class="mono dim">{{.Prefix}}…</td>
+    <td class="dim">{{.Created.Format "2006-01-02"}}</td>
+    <td class="dim">{{if .LastUsed}}{{.LastUsed.Format "2006-01-02 15:04"}}{{else}}never{{end}}</td>
+    <td><button class="btn ghost revoke" data-id="{{.ID}}">Revoke</button></td>
+  </tr>
+  {{end}}
+</table>
+{{else}}
+<p class="dim" style="margin-top:20px">No keys yet.</p>
+{{end}}
+
+<script>
+document.getElementById("create").addEventListener("click", async () => {
+  const name = document.getElementById("name").value;
+  const resp = await fetch("/v1/keys", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({name}),
+  });
+  const data = await resp.json();
+  const box = document.getElementById("fresh");
+  box.style.display = "block";
+  box.textContent = data.key
+    ? data.key + "\n\nCopy it now — this is the only time it is shown."
+    : "error: " + (data.error || "could not create key");
+  if (data.key) setTimeout(() => location.reload(), 30000);
+});
+for (const btn of document.querySelectorAll(".revoke")) {
+  btn.addEventListener("click", async () => {
+    if (!confirm("Revoke this key? Anything using it stops working immediately.")) return;
+    await fetch("/v1/keys/revoke", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({id: btn.dataset.id}),
+    });
+    location.reload();
+  });
+}
+</script>
+{{end}}
+
+{{template "foot" .}}

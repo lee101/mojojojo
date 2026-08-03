@@ -1,0 +1,309 @@
+{{template "head" .}}
+
+<style>
+.home-hero .row{margin:18px 0 14px}
+.home-playground{margin-top:12px}
+.home-playground>h2{margin:1em 0 .55em}
+.home-code{height:clamp(340px,48vh,560px);min-height:300px;resize:vertical}
+.home-playground .panel>.row{margin:14px 0}
+.home-playground #out{min-height:96px;margin-bottom:0}
+@media(max-width:860px){
+  .home-hero{display:block;padding-top:4px}
+  .home-hero .lede{max-width:100%}
+  .home-playground{margin-top:8px}
+}
+@media(max-width:700px){
+  .home-hero h1{font-size:clamp(32px,10vw,44px)}
+  .home-hero .lede{font-size:16.5px;line-height:1.5}
+  .home-hero .row{margin:14px 0 10px;gap:8px}
+  .home-hero .btn{padding:9px 11px;font-size:13px}
+  .home-playground>h2{margin:.75em 0 .4em}
+  .home-playground .panel{padding:12px}
+  .home-code{height:46vh;min-height:330px}
+  .home-playground .tab{padding:7px 9px;font-size:12px}
+  .home-playground .panel>.row{margin:11px 0}
+}
+</style>
+
+<section class="hero home-hero">
+  <div>
+    <h1>Serverless Python, billed by the <span class="acid">millisecond</span>.</h1>
+    <p class="lede">Send code and get output. No container, deployment, or idle
+    bill. Simple jobs run privately in the browser for free; packages, native
+    CPU and GPU work route to the right machine automatically.</p>
+    <div class="row">
+      <a class="btn" href="/editor">Run Python free</a>
+      {{if .User}}
+        <a class="btn ghost" href="/keys">Get an API key</a>
+      {{else}}
+        <a class="btn ghost" href="{{.Cfg.SignupURL}}">Get $1 server credit</a>
+      {{end}}
+      <a class="btn ghost" href="/docs">Read the API</a>
+    </div>
+    <p class="proof"><span>✓ browser tier is free</span><span>✓ no image to build</span>
+      <span>✓ CPU + GPU on demand</span></p>
+  </div>
+  <div class="hero-mascot" aria-hidden="true"></div>
+</section>
+
+<section id="playground" class="home-playground">
+  <h2>Try it</h2>
+  <div class="panel">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-where="auto">Auto</button>
+      <button class="tab" role="tab" aria-selected="false" data-where="browser">Browser (free)</button>
+      <button class="tab" role="tab" aria-selected="false" data-where="server">Server (billed)</button>
+    </div>
+    <textarea id="code" class="home-code" spellcheck="false" rows="18"
+      style="width:100%;background:var(--code);color:var(--ink);border:1px solid var(--line);
+             border-radius:0 12px 12px 12px;padding:14px;font-family:var(--mono);font-size:13.5px">{{.Example}}</textarea>
+    <div class="row">
+      <button class="btn" id="run">Run ▸</button>
+      <button class="btn ghost" id="open-editor" type="button">Open in editor ↗</button>
+      <label class="dim"><input type="checkbox" id="gpu"> GPU</label>
+      <span class="dim" id="planline">auto: decides where this belongs</span>
+    </div>
+    <pre id="out" class="dim">output appears here</pre>
+    <div class="row" id="cta" style="display:none"></div>
+  </div>
+  <details id="mojopanel" style="margin-top:18px">
+    <summary class="dim" style="cursor:pointer">…or write the Mojo yourself
+      <span class="pill">no interpreter at all</span></summary>
+    <p class="dim" style="margin:10px 0">Same estimate, same arithmetic, written
+    in Mojo instead of Python. We build it here — the compile is on us and
+    cached by content hash — and run the binary. Nothing is interpreted, so
+    there is no first call to warm up: it is native from the first instruction.
+    Mojo runs always go to our machines; there is no wasm build to fall back
+    to.</p>
+    <textarea id="mojocode" spellcheck="false" rows="12"
+      style="width:100%;background:var(--code);color:var(--ink);border:1px solid var(--line);
+             border-radius:12px;padding:14px;font-family:var(--mono);font-size:13.5px">{{.MojoExample}}</textarea>
+    <div class="row">
+      <button class="btn" id="mojorun">Run Mojo ▸</button>
+      <span class="dim">billed the same way: the milliseconds your program ran</span>
+    </div>
+    <pre id="mojoout" class="dim">output appears here</pre>
+  </details>
+
+  <p class="dim">Signed out, this runs in your own browser — free, private, unlimited.
+  <a href="{{.Cfg.SignupURL}}">Create an account</a> (or
+  <a href="/auth/login">sign in</a>) for our machines, GPUs, the full package
+  index and longer runs; the first
+  <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b> are on us.</p>
+</section>
+
+<section>
+  <h2>The API is one endpoint</h2>
+  <div class="grid2">
+    <div>
+      <h3>curl</h3>
+<pre data-lang="bash">curl -s https://mojojojo.cc/v1/run \
+  -H "Authorization: Bearer $MOJOJOJO_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "print(sum(i*i for i in range(10)))",
+    "packages": ["numpy"],
+    "timeout_ms": 10000
+  }'</pre>
+    </div>
+    <div>
+      <h3>response</h3>
+<pre data-lang="json">{
+  "ok": true,
+  "stdout": "285\n",
+  "billable_ms": 41.8,
+  "accel": {"compiled": 0, "native_calls": 0},
+  "charge": {"billed_ms": 41.8, "credits": 0,
+             "owed_ms": 41.8, "balance": 4820}
+}</pre>
+    </div>
+  </div>
+  <p class="dim">41.8ms does not cost a whole credit, so it does not round up to one.
+  Milliseconds accrue against your balance and a credit moves when they cross
+  {{.Cfg.MsPerCredit}}ms. Nothing is lost in either direction.</p>
+
+  <h3>JavaScript — free when it can be</h3>
+<pre data-lang="js">import { run } from "https://mojojojo.cc/mojojojo.js"
+
+const r = await run(`print(sum(range(10)))`)
+r.stdout   // "45\n"
+r.where    // "browser" — ran on your machine, cost nothing
+
+const g = await run(train, { gpu: true, apiKey: KEY })
+g.where    // "server" — wasm has no GPU, so this one is billed</pre>
+  <p class="dim">mojojojo.js runs your Python in the caller's own browser via
+  WebAssembly and only reaches for our machines when the browser genuinely
+  cannot do the job — a GPU, a package with no wasm wheel, or the native
+  compiled path. <code class="inl">r.where</code> and <code class="inl">r.why</code>
+  always tell you which happened.</p>
+</section>
+
+<section>
+  <h2>Why it is fast</h2>
+  <div class="grid3">
+    <div class="panel">
+      <h3 class="acid">Native hot loops</h3>
+      <p class="dim">Numeric functions are transpiled to Mojo by
+      <a href="https://github.com/lee101/mojosub">mojosub</a>, compiled to a shared
+      library, and dispatched in about a microsecond. 24–112x over CPython on
+      loop kernels.</p>
+    </div>
+    <div class="panel">
+      <h3 class="acid">A cache everyone shares</h3>
+      <p class="dim">Compiled units are content-addressed. The first person to
+      submit a kernel pays the compile — on our clock, not their bill — and
+      everyone after them gets native code from the first call.</p>
+    </div>
+    <div class="panel">
+      <h3 class="acid">Real CPython underneath</h3>
+      <p class="dim">Anything outside the compilable subset just runs on CPython
+      3.13. Your imports are read out of your code and installed by uv — no
+      packages field, no image to build. Nothing is rejected for being too
+      dynamic.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Pricing</h2>
+  <table>
+    <tr><th>Where</th><th>Price</th><th>Notes</th></tr>
+    <tr><td>New account</td><td class="acid">{{.Cfg.WelcomeCredits}} credits free</td><td>$1 of compute, once, no card</td></tr>
+    <tr><td>Your browser</td><td class="acid">free, always</td><td>WebAssembly CPython, never touches us</td></tr>
+    <tr><td>CPU</td><td>1 credit / {{.Cfg.MsPerCredit}}ms</td><td>$0.001 a credit — about $0.36 per core-hour</td></tr>
+    <tr><td>GPU</td><td>1 credit / {{.Cfg.MsPerCreditGPU}}ms</td><td>RTX 5090, for when the kernel wants one</td></tr>
+    <tr><td>Queue, env builds, compiles</td><td class="acid">free</td><td>you are not billed for our infrastructure</td></tr>
+  </table>
+</section>
+
+<script type="module">
+import { run, plan } from "/mojojojo.js";
+import { attachEditor } from "/hl.js?v=20260802b";
+import { shareURL } from "/static/share.js";
+
+const $ = (id) => document.getElementById(id);
+let where = "auto";
+attachEditor($("code"), "python");
+
+function cta(...actions) {
+  const box = $("cta");
+  box.innerHTML = "";
+  box.style.display = actions.length ? "flex" : "none";
+  for (const [label, href, ghost] of actions) {
+    const a = document.createElement("a");
+    a.className = ghost ? "btn ghost" : "btn";
+    a.href = href;
+    a.textContent = label;
+    box.appendChild(a);
+  }
+}
+
+for (const tab of document.querySelectorAll(".tab")) {
+  tab.addEventListener("click", () => {
+    for (const t of document.querySelectorAll(".tab")) t.setAttribute("aria-selected", "false");
+    tab.setAttribute("aria-selected", "true");
+    where = tab.dataset.where;
+    showPlan();
+  });
+}
+
+// The Mojo panel is its own small thing: one destination (ours), one button,
+// and a build that is reported separately from the run because the caller is
+// charged for one of them and not the other.
+$("mojorun").addEventListener("click", async () => {
+  const btn = $("mojorun");
+  btn.disabled = true;
+  btn.textContent = "Building…";
+  $("mojoout").textContent = "…";
+  try {
+    const r = await run($("mojocode").value, {
+      language: "mojo", source: "web", endpoint: location.origin,
+    });
+    const billed = r.charge ? r.charge.billed_ms : r.billable_ms;
+    const credits = r.charge ? r.charge.credits : 0;
+    const build = r.build_ms > 1
+      ? `, built in ${(r.build_ms / 1000).toFixed(1)}s (free, once for everyone)`
+      : ", from the compile cache";
+    $("mojoout").textContent =
+      (r.stdout || "") + (r.stderr ? "\n" + r.stderr : "") +
+      `\n\n— compiled Mojo, ran in ${Math.round(billed || 0)}ms${build}` +
+      `, billed ${Math.round(billed || 0)}ms = ${credits} credit(s)`;
+  } catch (err) {
+    $("mojoout").textContent = "error: " + err.message;
+    if (err.status === 401) {
+      cta(["Sign up — $1 free", {{.Cfg.SignupURL}}], ["Sign in", "/auth/login", true]);
+    } else if (err.status === 402) {
+      cta(["Add credits", {{.Cfg.TopUpURL}}], ["See your balance", "/credits", true]);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Run Mojo ▸";
+  }
+});
+
+function showPlan() {
+  const opts = { gpu: $("gpu").checked };
+  if (where !== "auto") opts.where = where;
+  const d = plan($("code").value, opts);
+  $("planline").textContent = `${d.where}: ${d.why}`;
+}
+$("code").addEventListener("input", showPlan);
+$("gpu").addEventListener("change", showPlan);
+showPlan();
+
+$("open-editor").addEventListener("click", async () => {
+  const target = await shareURL({
+    name: "playground.py",
+    code: $("code").value,
+    where,
+    gpu: $("gpu").checked,
+    timeout: 30,
+  }, `${location.origin}/editor`);
+  location.href = target;
+});
+
+$("run").addEventListener("click", async () => {
+  const btn = $("run");
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  $("out").textContent = "…";
+  const opts = { gpu: $("gpu").checked, source: "web", endpoint: location.origin };
+  if (where !== "auto") opts.where = where;
+  try {
+    const r = await run($("code").value, opts);
+    const billed = r.charge ? r.charge.billed_ms : r.billable_ms;
+    const credits = r.charge ? r.charge.credits : 0;
+    const accel = r.accel && r.accel.native_calls
+      ? `, ${r.accel.native_calls} native calls`
+      : (r.accel && r.accel.compiled ? `, compiled ${r.accel.compiled} kernel(s) for next time` : "");
+    // The warm tail is time we spent compiling after the answer existed. It is
+    // not billed, and saying so is the difference between "this took 9s" and
+    // "your program took 300ms and we spent the rest building your kernel".
+    const warm = r.warm_ms > 50 ? `, +${Math.round(r.warm_ms)}ms compiling (free)` : "";
+    $("out").textContent =
+      (r.stdout || "") + (r.stderr ? "\n" + r.stderr : "") +
+      `\n\n— ran on ${r.where} (${r.why}) in ${Math.round(r.wall_ms)}ms${warm}` +
+      `, billed ${Math.round(billed || 0)}ms = ${credits} credit(s)${accel}`;
+    const left = r.charge && r.charge.balance !== undefined ? r.charge.balance : null;
+    if (left !== null && r.where !== "browser" && left < 100) {
+      cta(["Add credits", {{.Cfg.TopUpURL}}], ["See your balance", "/credits", true]);
+    } else {
+      cta();
+    }
+  } catch (err) {
+    $("out").textContent = "error: " + err.message;
+    if (err.status === 401) {
+      cta(["Sign up — $1 free", {{.Cfg.SignupURL}}], ["Sign in", "/auth/login", true]);
+    } else if (err.status === 402) {
+      cta(["Add credits", {{.Cfg.TopUpURL}}], ["See your balance", "/credits", true]);
+    } else {
+      cta();
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Run ▸";
+  }
+});
+</script>
+
+{{template "foot" .}}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>QR Forge — make a QR worth sharing</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main>
+    <section class="copy">
+      <p class="eyebrow">MOJO-POWERED UTILITY</p>
+      <h1>Put anything<br>in a square.</h1>
+      <p class="lede">Links, Wi-Fi credentials, a launch invite—generate a clean SVG QR and download it forever.</p>
+      <label>Content<textarea id="text">https://mojojojo.cc</textarea></label>
+      <div class="row"><label>Error correction<select id="level"><option>M</option><option>L</option><option>Q</option><option>H</option></select></label><button id="generate">Forge QR</button></div>
+      <p id="status">Ready to forge.</p>
+    </section>
+    <section class="result"><div id="qr" aria-live="polite"></div><a id="download" download="qr-forge.svg" hidden>Download SVG</a><span id="meta"></span></section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{{template "head" .}}
+
+<h1>Research</h1>
+<p class="lede">Notes from building a service that runs other people's Python
+fast. Two threads: <b class="acid">containment</b> — how untrusted code shares a
+compile cache without sharing a process — and <b class="acid">speed</b> — where
+compiling Python to Mojo pays, where it does not, and how early we can tell.
+Product and open-source notes explain how those pieces become Studio, the agent,
+and the planned notebook workflow.</p>
+
+<p class="dim">Everything here is measured on the machine that serves this page
+and says so. The engine is <a href="https://github.com/lee101/mojosub">mojosub</a>,
+which is open source; its own lab notebook is
+<a href="https://github.com/lee101/mojosub/blob/main/docs/research.md">docs/research.md</a>.</p>
+
+<div class="posts">
+  {{range .Posts}}
+  <a class="post" href="/research/{{.Slug}}">
+    <div class="post-meta">
+      <span class="dim mono">{{.Date}}</span>
+      {{range .Tags}}<span class="tag tag-{{.}}">{{.}}</span>{{end}}
+      <span class="dim mono">{{.Minutes}} min</span>
+    </div>
+    <h3>{{.Title}}</h3>
+    <p class="dim">{{.Blurb}}</p>
+    <span class="more acid">Read →</span>
+  </a>
+  {{end}}
+</div>
+
+<h2>What we will not write about</h2>
+<p class="dim">Nothing here is a benchmark of somebody else's product. mojosub
+competes with the CPython interpreter, not with BLAS — a hand-written Mojo loop
+loses to <code class="inl">np.dot</code> and we say so in the posts rather than
+picking kernels where it does not. Where a measurement went against the design,
+the post is about that.</p>
+
+<style>
+.posts{display:grid;gap:14px;margin:26px 0}
+.post{display:block;background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-radius:16px;padding:18px 20px;color:var(--ink)}
+.post:hover{text-decoration:none;border-color:var(--grape)}
+.post h3{margin:.4em 0 .3em;font-size:21px;letter-spacing:-.01em}
+.post p{margin:0 0 .6em;max-width:70ch}
+.post-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.more{font-size:14px;font-weight:600}
+.tag{border-radius:999px;padding:2px 9px;font-size:11.5px;letter-spacing:.04em;
+  text-transform:uppercase;border:1px solid var(--line)}
+.tag-containment{color:var(--d-cls);border-color:rgba(143,203,211,.4)}
+.tag-speed{color:var(--acid);border-color:rgba(var(--acid-rgb),.4)}
+.tag-tooling{color:var(--hot);border-color:rgba(var(--hot-rgb),.4)}
+.tag-product,.tag-studio{color:var(--acid);border-color:rgba(var(--acid-rgb),.4)}
+.tag-open-source,.tag-agent{color:var(--sky);border-color:rgba(135,206,235,.4)}
+.tag-preview,.tag-notebooks{color:var(--gold);border-color:rgba(229,192,123,.4)}
+</style>
+
+{{template "foot" .}}

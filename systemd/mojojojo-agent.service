@@ -1,0 +1,25 @@
+[Unit]
+Description=mojojojo.cc — hosted coding agent backend
+After=network.target mojojojo.service
+Wants=mojojojo.service
+
+[Service]
+Type=simple
+User=administrator
+WorkingDirectory=/nvme0n1-disk/code/mojojojo-agent
+ExecStart=/nvme0n1-disk/code/mojojojo-agent/.venv/bin/python -m mjj.server
+Environment=PORT=4343
+Environment=MJJ_SERVER_HOST=127.0.0.1
+Environment=MJJ_WORKSPACE_ROOT=/nvme0n1-disk/data/mojojojo/agent-workspaces
+Environment=MJJ_CONTROL_PLANE_URL=http://127.0.0.1:4341/internal/agent/settle
+Environment=MJJ_MAX_RUNS_PER_USER=2
+Environment=MJJ_TOKENS_PER_CREDIT=1000
+Environment=ALLOW_ANONYMOUS=false
+EnvironmentFile=-/nvme0n1-disk/data/mojojojo/secrets.env
+Restart=always
+RestartSec=3
+MemoryHigh=2G
+MemoryMax=3G
+
+[Install]
+WantedBy=multi-user.target

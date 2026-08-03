@@ -1,0 +1,51 @@
+{{template "posthead" .}}
+
+<p>Mojojojo is not one repository with a public folder. Its compiler path,
+coding agent, and library ports are separate MIT-licensed projects with separate
+tests and failure modes. The hosted service is a consumer of those projects.</p>
+
+<table>
+  <thead><tr><th>Project</th><th>Owns</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><a href="https://github.com/lee101/mojosub">mojosub</a></td><td>Deterministic Python-subset transpilation, cache, and hot dispatch</td><td>Working subset; refuses unsupported Python</td></tr>
+    <tr><td><a href="https://github.com/lee101/mojojojo-compiler">mojojojo-compiler</a></td><td>Hybrid bundles with CPython fallback and safe native hot functions</td><td>Early working slice</td></tr>
+    <tr><td><a href="https://github.com/lee101/mojojojo-agent">mojojojo-agent</a></td><td>Grounded repository search, tools, sessions, and execution</td><td>Early, installable, MIT</td></tr>
+    <tr><td><a href="https://github.com/lee101/mojo-factory">mojo-factory</a></td><td>Scaffold, build, test, benchmark, review, and publish library ports</td><td>Active factory with hard gates</td></tr>
+  </tbody>
+</table>
+
+<h2>A repository count is not a readiness claim</h2>
+
+<p>The factory workspace contains a large and growing set of
+<code class="inl">mojo-*</code> projects. The live service currently knows about
+108 ports and marks 49 ready for its runtime. Those are different numbers on
+purpose: a generated repository, a port that builds, a port that passes parity
+tests, and a port integrated into the hosted runtime are four different states.</p>
+
+<div class="takeaway"><b>The gate is the product.</b> A port has to build, agree
+with its reference implementation, and publish honest benchmark results. The
+factory drops repeated failures instead of declaring success because an agent
+wrote plausible code.</div>
+
+<h2>Why split the projects?</h2>
+
+<p>Someone using mojosub locally should not need a mojojojo account. Someone
+auditing the agent should not have to understand the hosting database. A library
+port should reproduce its tests and benchmark from its own lockfile. Keeping
+those boundaries visible makes the hosted convenience optional.</p>
+
+<p>It also lets each layer be blunt about limitations. mojosub accepts a typed
+numeric subset. The compiler falls back to CPython. The agent is a generator,
+not an authority. The factory publishes slower-than-upstream rows when that is
+what the machine measured.</p>
+
+<h2>Where to start</h2>
+
+<ul>
+  <li>Read <a href="/research/converting-python-to-mojo">how generated Mojo is gated</a>.</li>
+  <li>Try a small function in the <a href="/editor">browser editor</a>.</li>
+  <li>Use <a href="/docs">the API</a> when the same run belongs in a program.</li>
+  <li>Open an individual repository before depending on a port; its own tests and notes are the source of truth.</li>
+</ul>
+
+{{template "productpostfoot" .}}

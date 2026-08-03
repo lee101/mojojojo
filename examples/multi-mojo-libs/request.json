@@ -1,0 +1,9 @@
+{
+  "language": "mojo",
+  "entrypoint": "main.mojo",
+  "files": {
+    "main.mojo": "from regex import ascii_lower\n\ndef main():\n    print(ascii_lower(65))\n",
+    "regex.mojo": "replace this value with the pinned library source"
+  },
+  "timeout_ms": 60000
+}

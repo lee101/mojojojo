@@ -1,0 +1,13 @@
+{
+  "name": "Phone Passport",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "normalize": {
+      "language": "python",
+      "entrypoint": "functions/normalize.py",
+      "packages": ["phonenumbers==9.0.35"],
+      "timeout_ms": 5000
+    }
+  }
+}
