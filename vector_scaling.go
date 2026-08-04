@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"log"
 	"net/http"
@@ -191,40 +192,57 @@ func (s *Server) vectorWorkerBootstrap(kind scale.Kind) string {
 
 // The vector bundle is public source plus model weights and runtime libraries;
 // it contains no account, provider, or storage credentials.
-func (s *Server) handleVectorWorkerTarball(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/gzip")
-	ctx.Response.Header.Set("Cache-Control", "no-store")
-	gz := gzip.NewWriter(ctx)
-	defer gz.Close()
-	tw := tar.NewWriter(gz)
-	defer tw.Close()
+var vectorWorkerBundle cachedBundle
 
-	files := map[string]string{
-		"model/modelint8_512dim.safetensors": "../gobed/model/modelint8_512dim.safetensors",
-		"model/tokenizer.json":               "../gobed/model/tokenizer.json",
-		"lib/libmojo_embed.so":               "../mojo-embed/build/libmojo_embed.so",
-		"runtime/libKGENCompilerRTShared.so": "../mojosub/.pixi/envs/default/lib/libKGENCompilerRTShared.so",
-		"runtime/libAsyncRTMojoBindings.so":  "../mojosub/.pixi/envs/default/lib/libAsyncRTMojoBindings.so",
-	}
-	_ = filepath.Walk("vectorworker", func(path string, info os.FileInfo, err error) error {
-		if err == nil && !info.IsDir() && !strings.Contains(path, "__pycache__") && !strings.HasSuffix(path, ".pyc") {
-			files[path] = path
+func (s *Server) handleVectorWorkerTarball(ctx *fasthttp.RequestCtx) {
+	body, etag, err := vectorWorkerBundle.load(func() ([]byte, error) {
+		var body bytes.Buffer
+		gz := gzip.NewWriter(&body)
+		tw := tar.NewWriter(gz)
+		files := map[string]string{
+			"model/modelint8_512dim.safetensors": "../gobed/model/modelint8_512dim.safetensors",
+			"model/tokenizer.json":               "../gobed/model/tokenizer.json",
+			"lib/libmojo_embed.so":               "../mojo-embed/build/libmojo_embed.so",
+			"runtime/libKGENCompilerRTShared.so": "../mojosub/.pixi/envs/default/lib/libKGENCompilerRTShared.so",
+			"runtime/libAsyncRTMojoBindings.so":  "../mojosub/.pixi/envs/default/lib/libAsyncRTMojoBindings.so",
 		}
-		return err
+		if err := filepath.Walk("vectorworker", func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() && !strings.Contains(path, "__pycache__") && !strings.HasSuffix(path, ".pyc") {
+				files[path] = path
+			}
+			return err
+		}); err != nil {
+			return nil, err
+		}
+		for name, path := range files {
+			contents, err := os.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+			info, err := os.Stat(path)
+			if err != nil {
+				return nil, err
+			}
+			header := &tar.Header{Name: name, Mode: 0644, Size: int64(len(contents)), ModTime: info.ModTime()}
+			if err := tw.WriteHeader(header); err != nil {
+				return nil, err
+			}
+			if _, err := tw.Write(contents); err != nil {
+				return nil, err
+			}
+		}
+		if err := tw.Close(); err != nil {
+			return nil, err
+		}
+		if err := gz.Close(); err != nil {
+			return nil, err
+		}
+		return body.Bytes(), nil
 	})
-	for name, path := range files {
-		body, err := os.ReadFile(path)
-		if err != nil {
-			log.Printf("vector worker tarball: %s: %v", path, err)
-			return
-		}
-		info, _ := os.Stat(path)
-		header := &tar.Header{Name: name, Mode: 0644, Size: int64(len(body)), ModTime: info.ModTime()}
-		if err := tw.WriteHeader(header); err != nil {
-			return
-		}
-		if _, err := tw.Write(body); err != nil {
-			return
-		}
+	if err != nil {
+		log.Printf("vector worker tarball: %v", err)
+		ctx.Error("vector worker bundle unavailable", 500)
+		return
 	}
+	serveCachedBundle(ctx, body, etag)
 }

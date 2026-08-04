@@ -2,11 +2,15 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -101,20 +105,17 @@ func (s *Server) handleScaleStatus(ctx *fasthttp.RequestCtx) {
 //
 // Public on purpose: it is the runner source, it contains no secrets, and a
 // rented machine has no credentials at the moment it needs this. What it does
-// contain is the code that will execute untrusted programs, so it is built
-// from the files on disk each time rather than from a cached artifact that
-// could drift from what this deploy actually runs.
+// contain is the code that will execute untrusted programs. A process serves
+// one immutable build: deploys restart it, so building once avoids recompressing
+// the same bytes for every scale-out without risking cross-deploy drift.
+var workerBundle cachedBundle
+
 func (s *Server) handleWorkerTarball(ctx *fasthttp.RequestCtx) {
-	ctx.SetContentType("application/gzip")
-	ctx.Response.Header.Set("Cache-Control", "no-store")
-
-	gz := gzip.NewWriter(ctx)
-	defer gz.Close()
-	tw := tar.NewWriter(gz)
-	defer tw.Close()
-
-	for _, dir := range []string{"runner"} {
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	body, etag, err := workerBundle.load(func() ([]byte, error) {
+		var body bytes.Buffer
+		gz := gzip.NewWriter(&body)
+		tw := tar.NewWriter(gz)
+		err := filepath.Walk("runner", func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() {
 				return err
 			}
@@ -135,11 +136,49 @@ func (s *Server) handleWorkerTarball(ctx *fasthttp.RequestCtx) {
 			_, err = tw.Write(body)
 			return err
 		})
-		if err != nil {
-			log.Printf("worker tarball: %v", err)
-			return
+		if err == nil {
+			err = tw.Close()
 		}
+		if closeErr := gz.Close(); err == nil {
+			err = closeErr
+		}
+		return body.Bytes(), err
+	})
+	if err != nil {
+		log.Printf("worker tarball: %v", err)
+		ctx.Error("worker bundle unavailable", 500)
+		return
 	}
+	serveCachedBundle(ctx, body, etag)
+}
+
+type cachedBundle struct {
+	once sync.Once
+	body []byte
+	etag string
+	err  error
+}
+
+func (b *cachedBundle) load(build func() ([]byte, error)) ([]byte, string, error) {
+	b.once.Do(func() {
+		b.body, b.err = build()
+		if b.err == nil {
+			sum := sha256.Sum256(b.body)
+			b.etag = fmt.Sprintf(`"%x"`, sum)
+		}
+	})
+	return b.body, b.etag, b.err
+}
+
+func serveCachedBundle(ctx *fasthttp.RequestCtx, body []byte, etag string) {
+	ctx.SetContentType("application/gzip")
+	ctx.Response.Header.Set("Cache-Control", "public, max-age=300")
+	ctx.Response.Header.Set("ETag", etag)
+	if string(ctx.Request.Header.Peek("If-None-Match")) == etag {
+		ctx.SetStatusCode(fasthttp.StatusNotModified)
+		return
+	}
+	ctx.SetBody(body)
 }
 
 // pickBackend chooses where a run goes.
