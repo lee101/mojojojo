@@ -13,7 +13,10 @@ It also exposes managed vector retrieval at **[/vector](https://mojojojo.cc/vect
 a folded static 512-dimensional embedding model, portable int8 indexes, Mojo exact
 search, durable tenant-owned documents, and capability-gated GPU placement.
 
-The open-source coding agent lives at **[/agent](https://mojojojo.app.nz/agent)**.
+The open-source coding agent lives at **[/agent](https://mojojojo.cc/agent)**;
+its complete source, tests, docs, and release automation are public at
+**[lee101/mojojojo-agent](https://github.com/lee101/mojojojo-agent)** under the
+MIT licence.
 The hosted Mojo Notebook product and its plugin/AI boundary are specified in
 [`docs/notebooks.md`](docs/notebooks.md).
 That page links the browser agent, checksummed Linux/macOS/Windows binaries,

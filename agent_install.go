@@ -7,7 +7,14 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-const agentReleaseDownloadBase = "https://github.com/lee101/mojojojo-agent/releases/latest/download"
+const (
+	agentSourceURL           = "https://github.com/lee101/mojojojo-agent"
+	agentDocsURL             = agentSourceURL + "/blob/main/docs/README.md"
+	agentReleasesURL         = agentSourceURL + "/releases"
+	agentIssuesURL           = agentSourceURL + "/issues"
+	agentLicenseURL          = agentSourceURL + "/blob/main/LICENSE"
+	agentReleaseDownloadBase = agentReleasesURL + "/latest/download"
+)
 
 // The website owns the memorable installer URLs. Serve the small scripts from
 // the adjacent source checkout so a missing release-side script can never turn

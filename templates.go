@@ -87,6 +87,12 @@ func (s *Server) meta(title, desc string) Meta {
 	}
 }
 
+func (s *Server) metaAt(title, desc, path string) Meta {
+	meta := s.meta(title, desc)
+	meta.Canonical = strings.TrimRight(s.cfg.SiteBaseURL, "/") + "/" + strings.TrimLeft(path, "/")
+	return meta
+}
+
 // pageData fills in what every page needs whether or not its handler thought
 // about it: the config the header and footer link to, and a credit balance.
 // Credits is never allowed to be missing — a nil there is a template error on
@@ -96,6 +102,11 @@ func (s *Server) pageData(data map[string]any) map[string]any {
 		data = map[string]any{}
 	}
 	data["Cfg"] = s.cfg
+	data["AgentSourceURL"] = agentSourceURL
+	data["AgentDocsURL"] = agentDocsURL
+	data["AgentReleasesURL"] = agentReleasesURL
+	data["AgentIssuesURL"] = agentIssuesURL
+	data["AgentLicenseURL"] = agentLicenseURL
 	data["AgentReleaseBase"] = agentReleaseDownloadBase
 	if _, ok := data["Credits"]; !ok {
 		credits := 0
@@ -143,8 +154,9 @@ func (s *Server) handleDocs(ctx *fasthttp.RequestCtx) {
 
 func (s *Server) handleAgentPage(ctx *fasthttp.RequestCtx) {
 	s.render(ctx, "agent.html", map[string]any{
-		"Meta": s.meta("mjj — the token-efficient mojojojo coding agent",
-			"Install the mojojojo coding agent for Linux, macOS, or Windows, or try it in the browser."),
+		"Meta": s.metaAt("mjj — the token-efficient mojojojo coding agent",
+			"Install the mojojojo coding agent for Linux, macOS, or Windows, or try it in the browser.",
+			"/agent"),
 		"User": s.auth.userFromSession(ctx),
 	})
 }

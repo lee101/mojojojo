@@ -97,6 +97,38 @@ func TestTopUpURLCarriesCheckoutIntent(t *testing.T) {
 	}
 }
 
+func TestAgentPageLinksThePublicProject(t *testing.T) {
+	cfg := loadConfig()
+	tmpl, err := loadTemplates(cfg)
+	if err != nil {
+		t.Skipf("templates unavailable: %v", err)
+	}
+	s := &Server{cfg: cfg, tmpl: tmpl}
+	var buf bytes.Buffer
+	data := s.pageData(map[string]any{
+		"Meta": s.metaAt("mjj", "agent", "/agent"),
+	})
+	if err := tmpl.t.ExecuteTemplate(&buf, "agent.html", data); err != nil {
+		t.Fatal(err)
+	}
+	html := buf.String()
+	for _, want := range []string{
+		agentSourceURL,
+		agentDocsURL,
+		agentReleasesURL,
+		agentIssuesURL,
+		agentLicenseURL,
+		`href="#install"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("agent page does not link %q", want)
+		}
+	}
+	if data["Meta"].(Meta).Canonical != cfg.SiteBaseURL+"/agent" {
+		t.Errorf("agent canonical = %q", data["Meta"].(Meta).Canonical)
+	}
+}
+
 // The low-balance banner is the only thing standing between a user and a 402
 // they did not see coming, so it appears exactly when it should.
 func TestLowBalanceBannerAppearsOnlyWhenLow(t *testing.T) {

@@ -8,9 +8,12 @@
     search, resumable sessions, and fast local code execution. Install one
     binary or use the same agent inside the mojojojo editor.</p>
     <div class="row">
-      <a class="btn" href="/editor">Try it in the browser</a>
-      <a class="btn ghost" href="https://github.com/lee101/mojojojo-agent">Read the source</a>
+      <a class="btn" href="#install">Install mjj</a>
+      <a class="btn ghost" href="{{.AgentSourceURL}}">Open source on GitHub</a>
+      <a href="/editor">Try it in the browser →</a>
     </div>
+    <p class="proof"><span>MIT licensed</span><span>Linux · macOS · Windows</span>
+      <span>Python host · Mojo hot paths</span></p>
   </div>
   <div class="agent-terminal" aria-label="Example mjj session">
     <div class="terminal-bar"><span></span><span></span><span></span><b>mjj</b></div>
@@ -23,6 +26,28 @@ shell   pytest -q
 
 Fixed the route precedence bug. 38 tests pass.</code></pre>
   </div>
+</section>
+
+<section class="panel agent-source" id="source">
+  <div>
+    <p class="eyebrow">Public by default</p>
+    <h2>Read the agent you are running</h2>
+    <p>The CLI, model loop, bounded tools, session format, hosted backend, tests,
+    benchmarks, and release automation are all developed in public under the
+    MIT licence. The hosted editor uses the same agent loop.</p>
+    <div class="source-links">
+      <a href="{{.AgentSourceURL}}">Source code</a>
+      <a href="{{.AgentDocsURL}}">Documentation</a>
+      <a href="{{.AgentReleasesURL}}">Releases</a>
+      <a href="{{.AgentIssuesURL}}">Issues</a>
+      <a href="{{.AgentLicenseURL}}">MIT licence</a>
+    </div>
+  </div>
+  <pre data-lang="shell"><code>git clone {{.AgentSourceURL}}.git
+cd mojojojo-agent
+uv sync
+uv run pytest -q
+uv run mjj</code></pre>
 </section>
 
 <section id="install">
@@ -80,6 +105,32 @@ Fixed the route precedence bug. 38 tests pass.</code></pre>
   </article>
 </div>
 
+<section class="agent-workflows">
+  <h2>Interactive, headless, and resumable</h2>
+  <div class="grid2">
+    <div>
+      <p>Run <code class="inl">mjj</code> with no arguments for the terminal app.
+      Type <code class="inl">/</code> for model, reasoning, authentication,
+      session, image, export, and autonomy commands.</p>
+      <pre data-lang="shell"><code>cd your-project
+mjj
+
+# empty composer
+# ←/→ reasoning · Shift+↑/↓ model</code></pre>
+    </div>
+    <div>
+      <p>Headless mode keeps the final answer on stdout and progress on stderr.
+      Sessions are append-only JSONL and can be resumed, forked, imported, or
+      exported.</p>
+      <pre data-lang="shell"><code>mjj exec --image reference.png "match this UI"
+mjj sessions
+mjj exec --resume SESSION_ID "continue"
+mjj export run.html --session SESSION_ID</code></pre>
+    </div>
+  </div>
+  <p><a href="{{.AgentDocsURL}}">Read the complete getting-started and architecture docs →</a></p>
+</section>
+
 <section class="agent-steps">
   <h2>Then point it at real work</h2>
   <pre data-lang="shell"><code>mjj auth --probe
@@ -108,7 +159,10 @@ mjj search "where are API retries handled?" src --stats</code></pre>
 .download-links{display:flex;gap:10px 18px;flex-wrap:wrap;padding-top:12px;font-size:14px}
 .feature-mark{font:12px var(--mono);color:var(--hot);margin:0}.agent-features h3{margin-top:8px}.agent-features p:last-child{color:var(--dim)}
 .agent-steps{max-width:760px}.agent-steps pre{margin-top:18px}
+.agent-source{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center;margin:28px 0 8px}.agent-source h2{margin:.25em 0 .45em}.agent-source pre{margin:0}
+.source-links{display:flex;gap:8px 18px;flex-wrap:wrap;margin-top:16px}.agent-workflows{margin-top:42px}.agent-workflows .grid2{align-items:start}
 @media(max-width:860px){.agent-hero,.install-grid{grid-template-columns:1fr}.agent-hero{padding-top:24px}.agent-terminal pre{min-height:0}}
+@media(max-width:860px){.agent-source{grid-template-columns:1fr}}
 </style>
 
 {{template "foot" .}}
