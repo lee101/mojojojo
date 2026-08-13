@@ -329,7 +329,8 @@ func (s *Server) route(ctx *fasthttp.RequestCtx) {
 	case path == "/visualbench" || path == "/visualbench/":
 		redirectLocal(ctx, "/static/visualbench/index.html?v=20260802")
 	case path == "/robots.txt":
-		ctx.SetContentType("text/plain")
+		ctx.SetContentType("text/plain; charset=utf-8")
+		ctx.Response.Header.Set("Cache-Control", "public, max-age=3600")
 		ctx.WriteString("User-agent: *\nAllow: /\nSitemap: " + s.cfg.SiteBaseURL + "/sitemap.xml\n")
 	case path == "/sitemap.xml":
 		s.handleSitemap(ctx)
@@ -474,20 +475,37 @@ func (s *Server) handleSitemap(ctx *fasthttp.RequestCtx) {
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	b.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + "\n")
+	// Product and discovery pages come first. The example entrypoints below are
+	// complete public apps, not source files; listing them lets search engines
+	// discover the useful thing a visitor can open directly.
 	for _, page := range []struct{ path, priority string }{
-		{"/", "1.0"}, {"/cloud", "0.9"}, {"/data", "0.9"}, {"/vector", "0.9"}, {"/examples", "0.9"},
-		{"/apps", "0.9"}, {"/tools", "0.9"}, {"/studio", "0.9"},
-		{"/editor", "0.8"}, {"/agent", "0.9"}, {"/pricing", "0.8"}, {"/docs", "0.8"}, {"/research", "0.7"},
+		{"/", "1.0"}, {"/studio", "0.9"}, {"/cloud", "0.9"}, {"/agent", "0.9"},
+		{"/apps", "0.9"}, {"/tools", "0.9"}, {"/examples", "0.9"},
+		{"/data", "0.8"}, {"/vector", "0.8"}, {"/editor", "0.8"},
+		{"/pricing", "0.8"}, {"/docs", "0.8"},
 	} {
 		b.WriteString("<url><loc>" + html.EscapeString(s.cfg.SiteBaseURL+page.path) +
-			"</loc><lastmod>2026-08-02</lastmod><priority>" + page.priority + "</priority></url>\n")
+			"</loc><lastmod>2026-08-04</lastmod><priority>" + page.priority + "</priority></url>\n")
 	}
+	for _, slug := range []string{
+		"qr-forge", "cron-lens", "phone-passport", "photo-twin", "json-to-csv",
+		"png-to-webp", "mojo-serverless", "mojojojo-style-transfer",
+		"mojojojo-fractal", "multi-mojo-libs",
+	} {
+		b.WriteString("<url><loc>" + html.EscapeString(s.cfg.SiteBaseURL+"/examples/source/"+slug+"/index.html") +
+			"</loc><lastmod>2026-08-04</lastmod><priority>0.7</priority></url>\n")
+	}
+	// Long-form project notes deliberately come last, after the product and the
+	// apps they explain.
+	b.WriteString("<url><loc>" + html.EscapeString(s.cfg.SiteBaseURL+"/research") +
+		"</loc><lastmod>2026-08-04</lastmod><priority>0.6</priority></url>\n")
 	for _, post := range posts {
 		b.WriteString("<url><loc>" + html.EscapeString(s.cfg.SiteBaseURL+"/research/"+post.Slug) +
-			"</loc><lastmod>" + post.Date + "</lastmod></url>\n")
+			"</loc><lastmod>" + post.Date + "</lastmod><priority>0.5</priority></url>\n")
 	}
 	b.WriteString("</urlset>\n")
-	ctx.SetContentType("application/xml")
+	ctx.SetContentType("text/xml; charset=utf-8")
+	ctx.Response.Header.Set("Cache-Control", "public, max-age=3600")
 	ctx.WriteString(b.String())
 }
 

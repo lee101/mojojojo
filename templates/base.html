@@ -236,6 +236,7 @@ between machines; the shape of the result is what we are claiming.</p>
   <a class="btn ghost" href="/research">More research</a>
   <a class="btn ghost" href="https://github.com/lee101/mojosub">mojosub on GitHub</a>
 </div>
+{{template "mojoplug" .}}
 </article>
 {{template "foot" .}}
 {{end}}
@@ -250,8 +251,24 @@ build and test instructions.</p>
   <a class="btn ghost" href="/agent">Install the agent</a>
   <a class="btn ghost" href="/research">More notes</a>
 </div>
+{{template "mojoplug" .}}
 </article>
 {{template "foot" .}}
+{{end}}
+
+{{define "mojoplug"}}
+<aside class="takeaway" style="margin-top:2em">
+  <h2 style="margin:.1em 0 .45em">Put it to work</h2>
+  <p>Deploy Python or Mojo functions from <a href="/studio">Mojojojo Studio</a>,
+  or install the open-source <code class="inl">mjj</code> coding agent and point
+  it at your own repository.</p>
+  <pre data-lang="shell"><code>curl -fsSL https://mojojojo.cc/install.sh | sh
+mjj exec "build and deploy this function on Mojojojo"</code></pre>
+  <div class="row">
+    <a class="btn" href="/studio">Build a function</a>
+    <a class="btn ghost" href="/agent#install">Agent install options</a>
+  </div>
+</aside>
 {{end}}
 
 {{define "foot"}}

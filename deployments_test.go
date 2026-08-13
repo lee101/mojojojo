@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"strings"
 	"testing"
@@ -73,10 +74,19 @@ func TestSitemapIncludesCloudExamplesAndResearch(t *testing.T) {
 	ctx := &fasthttp.RequestCtx{}
 	s.handleSitemap(ctx)
 	body := string(ctx.Response.Body())
-	for _, path := range []string{"/cloud</loc>", "/examples</loc>", "/apps</loc>", "/tools</loc>", "/studio</loc>", "/agent</loc>", "/research/" + posts[0].Slug} {
+	for _, path := range []string{"/cloud</loc>", "/examples</loc>", "/apps</loc>", "/tools</loc>", "/studio</loc>", "/agent</loc>", "/examples/source/qr-forge/index.html</loc>", "/research/" + posts[0].Slug} {
 		if !strings.Contains(body, path) {
 			t.Errorf("sitemap missing %s", path)
 		}
+	}
+	if got := string(ctx.Response.Header.ContentType()); got != "text/xml; charset=utf-8" {
+		t.Errorf("sitemap content type = %q, want text/xml; charset=utf-8", got)
+	}
+	if err := xml.Unmarshal(ctx.Response.Body(), new(any)); err != nil {
+		t.Fatalf("sitemap is not valid XML: %v", err)
+	}
+	if apps, research := strings.Index(body, "/examples/source/qr-forge"), strings.Index(body, "/research"); apps < 0 || research < apps {
+		t.Error("research entries must follow product and sub-app entries")
 	}
 }
 
