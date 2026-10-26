@@ -140,10 +140,10 @@ func (s *Server) route(ctx *fasthttp.RequestCtx) {
 
 	// The JS client is meant to be embedded from anywhere, so the run API is
 	// CORS-open. Auth is by API key on those calls; cookies are same-site.
-	if strings.HasPrefix(path, "/v1/") {
+	if strings.HasPrefix(path, "/v1/") || path == "/mcp" || path == "/api/tools/search" {
 		ctx.Response.Header.Set("Cache-Control", "no-store")
 		ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
-		ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, X-Filename, X-Project-ID")
+		ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key, X-Filename, X-Project-ID, MCP-Protocol-Version, Mcp-Session-Id")
 		ctx.Response.Header.Set("Access-Control-Allow-Methods", "POST, PUT, GET, DELETE, OPTIONS")
 		if method == "OPTIONS" {
 			ctx.SetStatusCode(204)
@@ -168,6 +168,10 @@ func (s *Server) route(ctx *fasthttp.RequestCtx) {
 		s.handleUsage(ctx)
 	case path == "/v1/credits":
 		s.handleCredits(ctx)
+	case path == "/mcp" && method == "POST":
+		s.handleMCP(ctx)
+	case path == "/api/tools/search" && method == "GET":
+		s.handleToolSearch(ctx)
 	case path == "/v1/billing/checkout" && method == "POST":
 		s.handleStripeCheckout(ctx)
 	case path == "/v1/billing/portal" && method == "POST":
