@@ -1,7 +1,7 @@
 # mojojojo (Python SDK)
 
 Run Python on [mojojojo.cc](https://mojojojo.cc), billed by the
-millisecond. New mojojojo accounts get $1 of compute free.
+millisecond. Add credits to start, with a $1 bonus on your first top-up.
 
 ```bash
 pip install mojojojo

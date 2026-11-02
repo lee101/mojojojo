@@ -113,12 +113,12 @@ capacity can be managed from the Vector dashboard.</p>
   </div>
 </div>
 
-<h2>Free credits</h2>
-<p>Every new mojojojo account gets <b class="acid">{{.Cfg.WelcomeCredits}} credits — $1
-of compute</b> the first time it runs something here. No card, no trial clock.
+<h2>Bonus credits</h2>
+<p>Server-side runs spend credits you have added. Your first top-up comes with
+<b class="acid">{{.Cfg.WelcomeCredits}} bonus credits — $1 of compute</b>.
 At the CPU rate that is nearly three core-hours, which is a lot of backtests.</p>
-<p class="dim">One grant per account, ever. Server-side runs need an account for
-exactly this reason: free compute behind an anonymous endpoint is free compute
+<p class="dim">One bonus per account, ever, and only after a payment. Server-side
+runs need a paid account for exactly this reason: free compute behind an anonymous endpoint is free compute
 per <em>request</em>, and it would be strip-mined within a day. The browser
 runtime needs no account because it costs us nothing.</p>
 
@@ -145,7 +145,7 @@ queue time is never billed.</p>
     <a class="btn" href="/editor">Open the editor</a>
     <a class="btn ghost" href="{{.Cfg.AccountURL}}">Top up credits</a>
   {{else}}
-    <a class="btn" href="/auth/login">Sign in and claim $1</a>
+    <a class="btn" href="/auth/login">Sign in to add credits</a>
     <a class="btn ghost" href="/editor">Try it in your browser first</a>
   {{end}}
 </div>

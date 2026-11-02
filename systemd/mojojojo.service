@@ -30,7 +30,7 @@ Environment=MS_PER_CREDIT_GPU=2000
 # Server-side runs need a mojojojo account. The browser runtime (mojojojo.js)
 # stays free and unlimited without one, because it costs us nothing.
 Environment=ALLOW_ANONYMOUS=false
-# $1 of compute, once per account, on first run.
+# $1 bonus, once per account, usable only after a payment.
 Environment=WELCOME_CREDITS=1000
 # Overflow capacity. Providers are only built when their credentials exist, and
 # nothing is ever rented until SCALE_DRY_RUN=false is set deliberately.

@@ -9,7 +9,7 @@
       "id": "welcome",
       "delay_days": 0,
       "subject": "Welcome to mojojojo — start with one run",
-      "preheader": "Your account includes $1 of compute; here is the shortest path to using it.",
+      "preheader": "Add credits to start, with a $1 bonus on your first top-up.",
       "template": "01-welcome"
     },
     {

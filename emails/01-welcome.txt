@@ -1,4 +1,5 @@
-Thanks for trying mojojojo. Your account starts with $1 of compute credits.
+Thanks for trying mojojojo. Add credits to run on our machines;
+your first top-up comes with a $1 bonus.
 
 Run one Python function and see its placement, timing, and credit result:
 {{.SiteBaseURL}}/editor?utm_source=onboarding&utm_campaign={{.CampaignID}}&utm_content=welcome

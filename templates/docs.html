@@ -11,8 +11,9 @@ cookie used on this site. Server-side runs always need one of the two.</p>
 <p class="dim">There is no anonymous execution endpoint, and that is deliberate:
 free compute behind an unauthenticated URL is free compute per <em>request</em>,
 which is a botnet with good documentation. The browser runtime needs no account
-because it runs on the caller's own machine and costs us nothing. Signing in
-also gets you <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>, once.</p>
+because it runs on the caller's own machine and costs us nothing. Server runs
+spend credits you have added; your first top-up comes with
+<b class="acid">{{.Cfg.WelcomeCredits}} bonus credits ($1)</b>, once.</p>
 
 <h2>POST /v1/run</h2>
 <table>
@@ -53,7 +54,7 @@ also gets you <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>, once.</p
   <tr><th>Status</th><th>Means</th></tr>
   <tr><td>400</td><td>Bad request: no code, an invalid package spec, oversized program.</td></tr>
   <tr><td>401</td><td>Not signed in, and the request wants something the free tier does not cover.</td></tr>
-  <tr><td>402</td><td>Out of credits (or out of free milliseconds). Manage them on the <a href="{{.Cfg.AccountURL}}">mojojojo credits page</a>.</td></tr>
+  <tr><td>402</td><td>No paid credits, or out of credits. Manage them on the <a href="{{.Cfg.AccountURL}}">mojojojo credits page</a>.</td></tr>
   <tr><td>502</td><td>The runner is unreachable. Nothing was billed.</td></tr>
 </table>
 <p class="dim">A program that raises still costs — it used the machine. A request

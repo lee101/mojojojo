@@ -444,7 +444,7 @@ async function execute() {
     $("native-badge").textContent = "Not measured";
     if (error.status === 401) {
       setCost(0, 0, "Server execution needs an account");
-      cta(["Sign up · $1 free", SIGNUP_URL], ["Sign in", LOGIN_URL, true],
+      cta(["Sign up", SIGNUP_URL], ["Sign in", LOGIN_URL, true],
         ["Run in browser", "#browser", true]);
       $("cta").lastElementChild.addEventListener("click", (event) => {
         event.preventDefault();

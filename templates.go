@@ -408,7 +408,7 @@ func (s *Server) handleCreditsPage(ctx *fasthttp.RequestCtx) {
 	data := map[string]any{
 		"Meta": s.meta("mojojojo credits — balance, spending and top-ups",
 			"Manage mojojojo credits and spend them by the millisecond here. "+
-				"New accounts get $1 of compute free."),
+				"Add credits to start, with a $1 bonus on your first top-up."),
 		"User":       user,
 		"StripePage": true,
 	}

@@ -3,9 +3,9 @@
 <h1>Usage</h1>
 {{if not .User}}
   <p class="lede">Every run, what it cost, and where it went — for your account.
-  New accounts start with <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>.</p>
+  Add credits to start, with a $1 bonus on your first top-up.</p>
   <div class="row">
-    <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+    <a class="btn" href="{{.Cfg.SignupURL}}">Sign up</a>
     <a class="btn ghost" href="/auth/login?next=/usage">Sign in</a>
   </div>
 {{else}}

@@ -3,10 +3,9 @@
 <h1>API keys</h1>
 {{if not .User}}
   <p class="lede">Keys belong to your mojojojo account, and so does the balance they
-  spend. Creating one takes a minute and comes with
-  <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b> of compute.</p>
+  spend. Creating one takes a minute. Add credits to start, with a $1 bonus on your first top-up.</p>
   <div class="row">
-    <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+    <a class="btn" href="{{.Cfg.SignupURL}}">Sign up</a>
     <a class="btn ghost" href="/auth/login?next=/keys">Sign in</a>
   </div>
 {{else}}

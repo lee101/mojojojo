@@ -3,9 +3,9 @@
 <h1>Credits</h1>
 
 {{if not .User}}
-<p class="lede">One mojojojo balance, spent by the millisecond here. New
-accounts get <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b>
-of compute free — no card, no trial clock.</p>
+<p class="lede">One mojojojo balance, spent by the millisecond here. Add credits
+to start, with <b class="acid">{{.Cfg.WelcomeCredits}} bonus credits ($1)</b>
+on your first top-up.</p>
 
 <div class="grid2" style="margin-top:22px">
   <div class="panel">
@@ -13,18 +13,17 @@ of compute free — no card, no trial clock.</p>
     <p class="dim">mojojojo owns the account, wallet, API keys, and meter in
     its own Postgres database.</p>
     <div class="row">
-      <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+      <a class="btn" href="{{.Cfg.SignupURL}}">Sign up</a>
       <a class="btn ghost" href="/auth/login?next=/credits">I have an account</a>
     </div>
   </div>
   <div class="panel">
-    <h3>2 · Run something</h3>
-    <p class="dim">Your welcome credits land the first time you run code on our
-    machines — from the <a href="/editor">editor</a>, the API, or the SDK. Until
-    then nothing is spent and no card is asked for.</p>
+    <h3>2 · Add credits</h3>
+    <p class="dim">Top up or pick a plan, then run from the <a href="/editor">editor</a>,
+    the API, or the SDK. Your bonus credits unlock with your first payment.</p>
     <div class="row">
-      <a class="btn ghost" href="/editor">Open the editor</a>
       <a class="btn ghost" href="{{.Cfg.TopUpURL}}">Buy credits</a>
+      <a class="btn ghost" href="/editor">Open the editor</a>
     </div>
   </div>
 </div>
@@ -33,7 +32,7 @@ of compute free — no card, no trial clock.</p>
 <table>
   <thead><tr><th>Balance</th><th>Worth</th><th>CPU</th><th>GPU</th></tr></thead>
   <tbody>
-    <tr><td class="mono">{{.Cfg.WelcomeCredits}} <span class="dim">(free, on signup)</span></td>
+    <tr><td class="mono">{{.Cfg.WelcomeCredits}} <span class="dim">(bonus, first top-up)</span></td>
       <td class="mono">{{dollars .Cfg.WelcomeCredits}}</td>
       <td class="mono">{{cpuHours .Cfg.WelcomeCredits}} core-hours</td>
       <td class="mono">{{gpuMinutes .Cfg.WelcomeCredits}} GPU-minutes</td></tr>
@@ -156,17 +155,23 @@ and the API. Checkout stays on this page.</p>
 <div id="stripe-return" class="banner" hidden></div>
 {{end}}
 
-{{if not .Granted}}
+{{if not .User.Funded}}
 <div class="banner" style="margin-top:16px">
-  <span><b class="acid">{{.Cfg.WelcomeCredits}} welcome credits ({{dollars .Cfg.WelcomeCredits}})</b>
-  are waiting — they land automatically the first time you run something on our machines.</span>
+  <span><b class="acid">{{.Cfg.WelcomeCredits}} bonus credits ({{dollars .Cfg.WelcomeCredits}})</b>
+  unlock with your first top-up.</span>
+  <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
+</div>
+{{else if not .Granted}}
+<div class="banner" style="margin-top:16px">
+  <span><b class="acid">{{.Cfg.WelcomeCredits}} bonus credits ({{dollars .Cfg.WelcomeCredits}})</b>
+  land the first time you run something on our machines.</span>
   <a class="btn" href="/editor">Run something</a>
 </div>
 {{end}}
 
-{{if lt .Credits 1}}
+{{if not .User.Funded}}
 <div class="banner" style="margin-top:16px;border-color:var(--hot)">
-  <span><b>Out of credits.</b> Server runs are refused with a 402 until you top up.
+  <span><b>No paid credits.</b> Server runs are refused with a 402 until you top up.
   Browser runs still work and are still free.</span>
   <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
 </div>

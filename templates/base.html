@@ -172,11 +172,17 @@ footer a:hover{color:var(--link-hover)}
     {{else}}
       <a href="/credits">Credits</a>
       <a href="/auth/login">Sign in</a>
-      <a class="btn" href="{{.Cfg.SignupURL}}">Sign up — $1 free</a>
+      <a class="btn" href="{{.Cfg.SignupURL}}">Sign up</a>
     {{end}}
   </nav>
 </header>
-{{if .User}}{{if lt .Credits 100}}
+{{if .User}}{{if not .User.Funded}}
+<div class="banner">
+  <span><b>No paid credits</b> — server runs need a top-up, and your first one
+  comes with a $1 bonus.</span>
+  <a class="btn" href="{{.Cfg.TopUpURL}}">Add credits</a>
+</div>
+{{else if lt .Credits 100}}
 <div class="banner">
   <span><b>{{.Credits}} credits left</b> — that is
   {{seconds (creditsMs .Credits)}}s of CPU. Runs stop when it reaches zero.</span>

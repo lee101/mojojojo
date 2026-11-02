@@ -142,11 +142,11 @@ func TestLowBalanceBannerAppearsOnlyWhenLow(t *testing.T) {
 	for _, tc := range []struct {
 		credits int
 		want    bool
-	}{{0, true}, {99, true}, {100, false}, {5000, false}} {
+	}{{1, true}, {99, true}, {100, false}, {5000, false}} {
 		var buf bytes.Buffer
 		data := s.pageData(map[string]any{
 			"Meta": s.meta("t", ""),
-			"User": &User{ID: "u1", Email: "a@b.c", FreeCredit: tc.credits},
+			"User": &User{ID: "u1", Email: "a@b.c", PaidCredit: tc.credits},
 		})
 		if err := tmpl.t.ExecuteTemplate(&buf, "404.html", data); err != nil {
 			t.Fatal(err)
@@ -154,6 +154,17 @@ func TestLowBalanceBannerAppearsOnlyWhenLow(t *testing.T) {
 		if got := strings.Contains(buf.String(), "credits left</b>"); got != tc.want {
 			t.Errorf("%d credits: banner=%v, want %v", tc.credits, got, tc.want)
 		}
+	}
+	var buf bytes.Buffer
+	data := s.pageData(map[string]any{
+		"Meta": s.meta("t", ""),
+		"User": &User{ID: "u1", Email: "a@b.c", FreeCredit: 5000},
+	})
+	if err := tmpl.t.ExecuteTemplate(&buf, "404.html", data); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "No paid credits") {
+		t.Error("an account holding only bonus credits is not told to top up")
 	}
 }
 

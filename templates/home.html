@@ -36,7 +36,7 @@
       {{if .User}}
         <a class="btn ghost" href="/keys">Get an API key</a>
       {{else}}
-        <a class="btn ghost" href="{{.Cfg.SignupURL}}">Get $1 server credit</a>
+        <a class="btn ghost" href="{{.Cfg.SignupURL}}">Create an account</a>
       {{end}}
       <a class="btn ghost" href="/docs">Read the API</a>
     </div>
@@ -88,8 +88,8 @@
   <p class="dim">Signed out, this runs in your own browser — free, private, unlimited.
   <a href="{{.Cfg.SignupURL}}">Create an account</a> (or
   <a href="/auth/login">sign in</a>) for our machines, GPUs, the full package
-  index and longer runs; the first
-  <b class="acid">{{.Cfg.WelcomeCredits}} credits ($1)</b> are on us.</p>
+  index and longer runs. Add credits to start; your first top-up comes with
+  <b class="acid">{{.Cfg.WelcomeCredits}} bonus credits ($1)</b>.</p>
 </section>
 
 <section>
@@ -168,7 +168,7 @@ g.where    // "server" — wasm has no GPU, so this one is billed</pre>
   <h2>Pricing</h2>
   <table>
     <tr><th>Where</th><th>Price</th><th>Notes</th></tr>
-    <tr><td>New account</td><td class="acid">{{.Cfg.WelcomeCredits}} credits free</td><td>$1 of compute, once, no card</td></tr>
+    <tr><td>First top-up</td><td class="acid">+{{.Cfg.WelcomeCredits}} bonus credits</td><td>$1 of compute, once per account</td></tr>
     <tr><td>Your browser</td><td class="acid">free, always</td><td>WebAssembly CPython, never touches us</td></tr>
     <tr><td>CPU</td><td>1 credit / {{.Cfg.MsPerCredit}}ms</td><td>$0.001 a credit — about $0.36 per core-hour</td></tr>
     <tr><td>GPU</td><td>1 credit / {{.Cfg.MsPerCreditGPU}}ms</td><td>RTX 5090, for when the kernel wants one</td></tr>
@@ -231,7 +231,7 @@ $("mojorun").addEventListener("click", async () => {
   } catch (err) {
     $("mojoout").textContent = "error: " + err.message;
     if (err.status === 401) {
-      cta(["Sign up — $1 free", {{.Cfg.SignupURL}}], ["Sign in", "/auth/login", true]);
+      cta(["Sign up", {{.Cfg.SignupURL}}], ["Sign in", "/auth/login", true]);
     } else if (err.status === 402) {
       cta(["Add credits", {{.Cfg.TopUpURL}}], ["See your balance", "/credits", true]);
     }
@@ -293,7 +293,7 @@ $("run").addEventListener("click", async () => {
   } catch (err) {
     $("out").textContent = "error: " + err.message;
     if (err.status === 401) {
-      cta(["Sign up — $1 free", {{.Cfg.SignupURL}}], ["Sign in", "/auth/login", true]);
+      cta(["Sign up", {{.Cfg.SignupURL}}], ["Sign in", "/auth/login", true]);
     } else if (err.status === 402) {
       cta(["Add credits", {{.Cfg.TopUpURL}}], ["See your balance", "/credits", true]);
     } else {

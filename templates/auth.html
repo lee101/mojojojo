@@ -39,7 +39,7 @@
     {{if eq .Mode "signup"}}
       <p class="auth-eyebrow">One quick step</p>
       <h1>Start building.</h1>
-      <p class="lede">Create your workspace and get $1 of compute to try mojojojo. No card required.</p>
+      <p class="lede">Create your workspace. Add credits to run in the cloud, with a $1 bonus on your first top-up.</p>
       <ul class="auth-points" aria-label="What your account includes">
         <li>Run Python and Mojo in the browser or cloud</li>
         <li>Keep projects, storage, usage, and API keys together</li>
@@ -84,7 +84,7 @@
       {{end}}
       <button class="btn auth-submit" id="auth-submit" type="submit"
         data-pending="{{if eq .Mode "signup"}}Creating your account…{{else}}Signing you in…{{end}}">
-        {{if eq .Mode "signup"}}Create account — get $1 free{{else}}Sign in{{end}}
+        {{if eq .Mode "signup"}}Create account{{else}}Sign in{{end}}
       </button>
     </form>
     {{if eq .Mode "signup"}}

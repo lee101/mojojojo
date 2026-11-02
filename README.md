@@ -43,7 +43,7 @@ direction, and the ledger line reads `exec:cpu:87ms`.
 
 | | |
 | --- | --- |
-| **New account** | **1000 credits ($1) free**, once, no card |
+| **First top-up** | **+1000 bonus credits ($1)**, once per account |
 | Your browser (`mojojojo.js`) | **free, always** — it never touches us |
 | CPU | 1 credit / 10,000 ms ≈ **$0.36 per core-hour** |
 | GPU (RTX 5090, time-sliced) | 1 credit / 2,000 ms ≈ **$1.80 per GPU-hour** |
@@ -53,11 +53,11 @@ direction, and the ledger line reads `exec:cpu:87ms`.
 spent competing with it (capped at half the run, so a compiling run is
 discounted rather than given away).
 
-Server-side runs need a mojojojo account. That is not a paywall — the first
-dollar is free and the browser runtime is unlimited without one — it is because
-free compute behind an anonymous endpoint is free compute per *request*, which
-is a botnet with good documentation. The welcome grant is once per local
-account, ever.
+Server-side runs need a mojojojo account with credits you have added. The
+browser runtime is unlimited without one. Free compute behind an anonymous
+endpoint, or behind a free signup, is free compute per *request*, which is a
+botnet with good documentation. The $1 bonus is once per account, ever, and
+only unlocks after a payment.
 
 ## Imports install themselves
 
@@ -305,8 +305,8 @@ mojosub's own lab notebook is [docs/research.md](../mojosub/docs/research.md).
 
 ## Credits and the account
 
-One mojojojo account, one local balance, spent by the millisecond here. New accounts get
-1000 credits ($1) the first time they run something, once, ever.
+One mojojojo account, one local balance, spent by the millisecond here. Server runs
+spend credits you have added; the first top-up comes with 1000 bonus credits ($1), once, ever.
 
 - **[/credits](https://mojojojo.cc/credits)** — balance and what it buys in
   core-hours, the milliseconds accruing towards the next credit, every ledger
@@ -431,7 +431,7 @@ Without `/usr/local/bin/mojojail` everything still runs, `isolated` comes back
 | `MOJOJOJO_WARM_MS` | 8000 | unbilled post-run compile window |
 | `MOJOJOJO_POOL_SLOTS` | 4 | warm interpreters per environment |
 | `MOJOJOJO_GPU_CONCURRENCY` | 2 | concurrent GPU runs; the rest queue |
-| `WELCOME_CREDITS` | 1000 | free credits per new account |
+| `WELCOME_CREDITS` | 1000 | bonus credits per account, usable after the first payment |
 | `MOJOJOJO_DATABASE_URL` | local `mojojojo` PostgreSQL database | all identity, billing, and control-plane data |
 | `MJJ_AGENT_TOKEN` | — | internal service credential for the shared agent backend |
 | `ALLOW_ANONYMOUS` | false | server-side runs without an account |
