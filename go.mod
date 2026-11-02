@@ -2,13 +2,15 @@ module mojojojo
 
 go 1.27.1
 
+toolchain go1.27.3
+
 require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/stripe/stripe-go/v86 v86.2.0
 	github.com/valyala/fasthttp v1.65.0
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.58.0
 )
 
 require (
@@ -27,8 +29,8 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 )
