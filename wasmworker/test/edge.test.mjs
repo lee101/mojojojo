@@ -13,7 +13,7 @@
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -62,8 +62,14 @@ async function run(body, timeoutMs = 60_000) {
   return { status: r.status, body: await r.json() };
 }
 
+const DEV_VARS = join(ROOT, ".dev.vars");
+
 before(async () => {
   if (!existsSync(WRANGLER)) return;
+  if (!existsSync(DEV_VARS)) {
+    writeFileSync(DEV_VARS, `EDGE_TOKEN = "${SHARED_SECRET}"\n`);
+    process.on("exit", () => rmSync(DEV_VARS, { force: true }));
+  }
   server = spawn(WRANGLER, ["dev", "--port", String(PORT), "--local"], {
     cwd: ROOT, stdio: "ignore", detached: true,
   });
@@ -202,6 +208,8 @@ describe("the edge tier", skip, () => {
 import { createHmac } from "node:crypto";
 
 const SECRET = SHARED_SECRET;
+// Fresh nonces per run: local Durable Object state outlives the server.
+const RUN = Date.now().toString(36);
 
 function ticketFor(claims) {
   const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
@@ -220,26 +228,32 @@ async function runWithHeaders(body, headers) {
 }
 
 describe("tickets", { ...skip, concurrency: false }, () => {
-  // These need the shared secret set, which `dev.sh`/the test runner does via
-  // .dev.vars. Without it the worker is open and the ticket path is not
-  // exercised — better skipped than passing vacuously.
-  const configured = existsSync(join(ROOT, ".dev.vars"));
-  const maybe = configured ? {} : { skip: "no .dev.vars with EDGE_TOKEN" };
+  const maybe = {};
 
   test("a valid ticket is admitted and comes back with a receipt", maybe, async () => {
     const claims = {
-      u: "user-1", x: Math.floor(Date.now() / 1000) + 120, m: 5000, n: "nonce-1",
+      u: "user-1", x: Math.floor(Date.now() / 1000) + 120, m: 5000, n: `nonce-1-${RUN}`,
     };
     const { status, body } = await runWithHeaders(
       { code: "print(6*7)" }, { "X-Mojojojo-Ticket": ticketFor(claims) });
     assert.equal(status, 200);
     assert.equal(body.stdout, "42\n");
-    assert.equal(body.ticket, "nonce-1");
+    assert.equal(body.ticket, `nonce-1-${RUN}`);
     // The receipt is over the nonce and the milliseconds, so the caller cannot
     // report a smaller bill than they used.
     const want = createHmac("sha256", SECRET)
-      .update(`nonce-1:${body.billable_ms.toFixed(3)}`).digest("hex");
+      .update(`nonce-1-${RUN}:${body.billable_ms.toFixed(3)}`).digest("hex");
     assert.equal(body.receipt, want);
+  });
+
+  test("a ticket is good for exactly one run", maybe, async () => {
+    const ticket = ticketFor({
+      u: "user-1", x: Math.floor(Date.now() / 1000) + 120, m: 5000, n: `once-${RUN}`,
+    });
+    const first = await runWithHeaders({ code: "print(1)" }, { "X-Mojojojo-Ticket": ticket });
+    assert.equal(first.status, 200);
+    const again = await runWithHeaders({ code: "print(1)" }, { "X-Mojojojo-Ticket": ticket });
+    assert.equal(again.status, 401);
   });
 
   test("an expired ticket is refused", maybe, async () => {
@@ -267,7 +281,7 @@ describe("tickets", { ...skip, concurrency: false }, () => {
 
   test("the ticket's budget caps the run, whatever the request asked for", maybe, async () => {
     const claims = {
-      u: "user-1", x: Math.floor(Date.now() / 1000) + 120, m: 800, n: "small",
+      u: "user-1", x: Math.floor(Date.now() / 1000) + 120, m: 800, n: `small-${RUN}`,
     };
     const { body } = await runWithHeaders(
       { code: "while True:\n    pass", timeout_ms: 30000 },

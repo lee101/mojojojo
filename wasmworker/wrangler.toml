@@ -14,7 +14,16 @@ cpu_ms = 30000
 [observability]
 enabled = true
 
+# One Durable Object per ticket nonce makes each ticket good for one run.
+[[durable_objects.bindings]]
+name = "TICKETS"
+class_name = "TicketLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TicketLedger"]
+
 # EDGE_TOKEN is a secret, not a var: `wrangler secret put EDGE_TOKEN`. Without
-# it the worker serves anyone who finds the URL, which is our Cloudflare bill.
+# it the worker refuses every run.
 [vars]
 MOJOJOJO_TIER = "edge"

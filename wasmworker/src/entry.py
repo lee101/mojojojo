@@ -36,7 +36,7 @@ import sys
 import time
 import traceback
 
-from workers import Response, WorkerEntrypoint
+from workers import DurableObject, Response, WorkerEntrypoint
 
 # Everything that reaches the host from inside Pyodide. `js` is the whole
 # JavaScript global scope — with it, user code has our Worker's identity, our
@@ -221,6 +221,36 @@ def open_ticket(secret: str, raw: str):
     return ticket
 
 
+class TicketLedger(DurableObject):
+    """One instance per ticket nonce: the first claim wins, every later one is
+    refused. Storage is cleared by an alarm when the ticket would have expired
+    anyway, so the used-set never outlives the tickets it guards."""
+
+    def __init__(self, ctx, env):
+        self.ctx = ctx
+        self.env = env
+
+    async def fetch(self, request):
+        if await self.ctx.storage.get("used"):
+            return Response("used", status=409)
+        await self.ctx.storage.put("used", 1)
+        expires = request.url.rsplit("=", 1)[-1]
+        await self.ctx.storage.setAlarm(int(float(expires) * 1000) + 60_000)
+        return Response("ok")
+
+    async def alarm(self):
+        await self.ctx.storage.deleteAll()
+
+
+async def claim_ticket(env, ticket) -> bool:
+    ledger = getattr(env, "TICKETS", None)
+    if ledger is None:
+        return False
+    stub = ledger.get(ledger.idFromName(str(ticket.get("n") or "")))
+    response = await stub.fetch(f"https://tickets.internal/claim?x={float(ticket.get('x', 0))}")
+    return response.status == 200
+
+
 class Default(WorkerEntrypoint):
     """POST /run, GET /health. Nothing else exists."""
 
@@ -242,14 +272,15 @@ class Default(WorkerEntrypoint):
         # so it answers two callers and nobody else: the control plane, with the
         # shared secret, and a browser holding a ticket the control plane signed.
         token = getattr(self.env, "EDGE_TOKEN", "") or ""
+        if not token:
+            return _json({"error": "edge is not configured"}, 503)
         ticket = None
-        if token:
-            supplied = request.headers.get("Authorization") or ""
-            supplied = supplied[7:].strip() if supplied.lower().startswith("bearer ") else ""
-            if not hmac.compare_digest(supplied, token):
-                ticket = open_ticket(token, request.headers.get("X-Mojojojo-Ticket") or "")
-                if ticket is None:
-                    return _json({"error": "unauthorised"}, 401)
+        supplied = request.headers.get("Authorization") or ""
+        supplied = supplied[7:].strip() if supplied.lower().startswith("bearer ") else ""
+        if not hmac.compare_digest(supplied, token):
+            ticket = open_ticket(token, request.headers.get("X-Mojojojo-Ticket") or "")
+            if ticket is None or not ticket.get("n"):
+                return _json({"error": "unauthorised"}, 401)
 
         try:
             body = await request.json()
@@ -280,6 +311,9 @@ class Default(WorkerEntrypoint):
             # A ticket says how much the bearer may spend. It is a limit, not a
             # request: an unsettled run is one we have already paid for.
             timeout_ms = min(int(timeout_ms), int(ticket.get("m") or MAX_TIMEOUT_MS))
+
+        if ticket is not None and not await claim_ticket(self.env, ticket):
+            return _json({"error": "ticket already used"}, 401)
 
         result = execute(code, body.get("stdin") or "", body.get("args"), timeout_ms)
 

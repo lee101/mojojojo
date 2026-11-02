@@ -18,3 +18,4 @@ mojojojo.db-wal
 mojojojo.db-shm
 visualbench
 .env.example
+wasmworker/.dev.vars
