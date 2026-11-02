@@ -526,6 +526,10 @@ func (s *Server) handleProjectPublish(ctx *fasthttp.RequestCtx, projectID string
 		sendError(ctx, 404, "project not found")
 		return
 	}
+	u, ok := s.paying(ctx, u)
+	if !ok {
+		return
+	}
 	files, manifest, err := s.draftBundle(projectID)
 	if err != nil {
 		sendError(ctx, 400, err.Error())
@@ -893,7 +897,7 @@ func (s *Server) handleHostedFunction(ctx *fasthttp.RequestCtx, projectID, name 
 		return
 	}
 	s.bill.grantWelcome(owner)
-	if owner.Credits() < 1 {
+	if !owner.Funded() {
 		sendError(ctx, 402, "this app's function budget is empty")
 		return
 	}

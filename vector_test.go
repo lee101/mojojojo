@@ -72,8 +72,8 @@ func vectorTestServer(t *testing.T) (*Server, string, *atomic.Int64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _ = s.bill.grantWelcome(u); u == nil {
-		t.Fatal("welcome grant failed")
+	if _, err := s.db.Exec(`UPDATE users SET paid_credits=1000 WHERE id=$1`, u.ID); err != nil {
+		t.Fatal(err)
 	}
 	token, err := s.auth.createSession(u.ID, "vector-test")
 	if err != nil {

@@ -186,6 +186,18 @@ func (b *billing) spendReason(userID string, credits int, reason string) (int, i
 	return take, after, nil
 }
 
+// userFunded is User.Funded read from the database, for work that runs later
+// than the request that asked for it.
+func userFunded(q interface {
+	QueryRow(string, ...any) *sql.Row
+}, userID string) bool {
+	var funded bool
+	return q.QueryRow(`SELECT paid_credits + CASE WHEN plan_credits_expire_at IS NULL
+		OR plan_credits_expire_at > $2 THEN plan_credits ELSE 0 END > 0
+		FROM users WHERE id = $1 AND disabled_at IS NULL`, userID, time.Now().UTC()).
+		Scan(&funded) == nil && funded
+}
+
 // owed reports the user's un-charged millisecond balance.
 func (b *billing) owed(userID string) float64 {
 	var owed float64

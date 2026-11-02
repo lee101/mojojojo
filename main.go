@@ -450,6 +450,7 @@ func (s *Server) handleCredits(ctx *fasthttp.RequestCtx) {
 	sendJSON(ctx, map[string]any{
 		"signed_in": true,
 		"credits":   credits,
+		"funded":    u.Funded(),
 		"balance": map[string]any{
 			"free": u.FreeCredit, "plan": u.PlanCredit, "paid": u.PaidCredit,
 			"usd": round3(float64(credits) * usdPerCredit),

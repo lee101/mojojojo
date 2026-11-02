@@ -281,6 +281,10 @@ func (s *Server) handleDeploymentCreate(ctx *fasthttp.RequestCtx) {
 		sendError(ctx, 401, "sign in at "+s.cfg.LoginURL)
 		return
 	}
+	user, ok := s.paying(ctx, user)
+	if !ok {
+		return
+	}
 	if s.uploads == nil {
 		sendError(ctx, 503, "object storage is not configured on this deployment")
 		return

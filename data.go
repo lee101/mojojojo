@@ -294,11 +294,7 @@ func (s *Server) syncDataRecord(u *User, namespace *dataNamespace, key, searchTe
 		}
 		return map[string]any{"status": "not_indexed"}
 	}
-	if u.Credits() < 1 && s.bill != nil {
-		s.bill.grantWelcome(u)
-		u = s.auth.userByID(u.ID)
-	}
-	if u == nil || u.Credits() < 1 {
+	if !u.Funded() {
 		changed, revision, removeErr := s.removeVectorDocument(p, documentID)
 		if removeErr == nil && changed {
 			removeErr = s.resetVectorProject(p, revision)

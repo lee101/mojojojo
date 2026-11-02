@@ -61,7 +61,7 @@ func createEdgeTables(db *sql.DB) error {
 // mintTicket issues one ticket, or nothing if this account already has too many
 // in the air.
 func (s *Server) mintTicket(userID string) (string, int, bool) {
-	if s.cfg.EdgeURL == "" || s.cfg.EdgeToken == "" || s.db == nil {
+	if s.cfg.EdgeURL == "" || s.cfg.EdgeToken == "" || s.db == nil || !userFunded(s.db, userID) {
 		return "", 0, false
 	}
 	var open int

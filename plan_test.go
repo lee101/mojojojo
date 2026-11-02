@@ -212,8 +212,8 @@ func ticketServer(t *testing.T) *Server {
 	}
 	s.cfg.EdgeURL = "https://edge.example"
 	s.cfg.EdgeToken = "shared-secret"
-	if _, err := s.db.Exec(`INSERT INTO users (id, email, password_hash, created_at)
-		VALUES ('user-1', 'edge@example.com', 'x', $1)`, time.Now().UTC()); err != nil {
+	if _, err := s.db.Exec(`INSERT INTO users (id, email, password_hash, created_at, paid_credits)
+		VALUES ('user-1', 'edge@example.com', 'x', $1, 1000)`, time.Now().UTC()); err != nil {
 		t.Fatalf("edge user: %v", err)
 	}
 	return s
@@ -297,8 +297,8 @@ func TestOutstandingTicketsAreCapped(t *testing.T) {
 		t.Fatal("issued more tickets than the cap allows")
 	}
 	// Another account is unaffected: the cap is per person, not global.
-	if _, err := s.db.Exec(`INSERT INTO users (id, email, password_hash, created_at)
-		VALUES ('user-2', 'edge2@example.com', 'x', $1)`, time.Now().UTC()); err != nil {
+	if _, err := s.db.Exec(`INSERT INTO users (id, email, password_hash, created_at, paid_credits)
+		VALUES ('user-2', 'edge2@example.com', 'x', $1, 1000)`, time.Now().UTC()); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, ok := s.mintTicket("user-2"); !ok {

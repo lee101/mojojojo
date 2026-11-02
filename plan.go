@@ -205,7 +205,7 @@ func (s *Server) handlePlan(ctx *fasthttp.RequestCtx) {
 	out.Suggestion = s.suggest(req, out)
 	// A ticket is only worth minting when the edge is where this belongs, and
 	// only for somebody we can bill afterwards.
-	if user := s.auth.userFromRequest(ctx); user != nil &&
+	if user := s.auth.userFromRequest(ctx); user.Funded() &&
 		out.Suggestion.Where == "edge" && s.edgeSuitable(req) {
 		if ticket, maxMs, ok := s.mintTicket(user.ID); ok {
 			out.Edge = &edgeGrant{URL: s.cfg.EdgeURL, Ticket: ticket, MaxMs: maxMs}

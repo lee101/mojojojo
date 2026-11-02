@@ -45,6 +45,10 @@ type User struct {
 
 func (u *User) Credits() int { return u.FreeCredit + u.PlanCredit + u.PaidCredit }
 
+// Funded is money the account put in: purchased credits or a live plan.
+// Grants alone never unlock our machines.
+func (u *User) Funded() bool { return u != nil && u.PaidCredit+u.PlanCredit > 0 }
+
 func (u *User) DisplayName() string {
 	if u == nil {
 		return ""

@@ -21,7 +21,7 @@ func testAgentAuth(t *testing.T) *authStore {
 	db := testPostgres(t)
 	now := time.Now().UTC()
 	if _, err := db.Exec(
-		`INSERT INTO users (id,email,password_hash,created_at,free_credits) VALUES ('agent-user','a@b.c','x',$1,10)`,
+		`INSERT INTO users (id,email,password_hash,created_at,paid_credits) VALUES ('agent-user','a@b.c','x',$1,10)`,
 		now); err != nil {
 		t.Fatal(err)
 	}

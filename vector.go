@@ -313,12 +313,8 @@ func validateVectorDocuments(documents []vectorDocument, maxBytes int) error {
 }
 
 func (s *Server) handleVectorUpsert(ctx *fasthttp.RequestCtx, u *User, p *vectorProject) {
-	if u.Credits() < 1 {
-		s.bill.grantWelcome(u)
-		u = s.auth.userByID(u.ID)
-	}
-	if u == nil || u.Credits() < 1 {
-		sendError(ctx, 402, "out of credits — top up at "+s.cfg.AccountURL)
+	u, ok := s.paying(ctx, u)
+	if !ok {
 		return
 	}
 	var req struct {
@@ -464,12 +460,8 @@ func (s *Server) hydrateVectorProject(client *vectorClient, projectID string, re
 }
 
 func (s *Server) handleVectorSearch(ctx *fasthttp.RequestCtx, u *User, p *vectorProject) {
-	if u.Credits() < 1 {
-		s.bill.grantWelcome(u)
-		u = s.auth.userByID(u.ID)
-	}
-	if u == nil || u.Credits() < 1 {
-		sendError(ctx, 402, "out of credits — top up at "+s.cfg.AccountURL)
+	u, ok := s.paying(ctx, u)
+	if !ok {
 		return
 	}
 	var req struct {

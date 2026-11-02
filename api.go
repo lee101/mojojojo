@@ -75,9 +75,9 @@ func (s *Server) handleRun(ctx *fasthttp.RequestCtx) {
 		// same Python locally, which is genuinely nobody's cost but the
 		// caller's.
 		if !s.cfg.AllowAnonymous {
-			sendError(ctx, 401, "sign in with your mojojojo account to run on our "+
-				"machines: "+s.cfg.LoginURL+" — new accounts get $1 of compute "+
-				"free, and mojojojo.js runs Python in your browser for nothing")
+			sendError(ctx, 401, "sign in with your mojojojo account and add credits to "+
+				"run on our machines: "+s.cfg.LoginURL+" — mojojojo.js runs Python "+
+				"in your browser for nothing")
 			return
 		}
 		if !s.free.allow(clientIP(ctx)) {
@@ -103,13 +103,12 @@ func (s *Server) handleRun(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	// First run on this account: hand over the welcome dollar before checking
-	// the balance, so a brand new account's first call works rather than
-	// bouncing off a 402 it would never understand.
+	// The welcome grant lands on first use, but only money the account put in
+	// unlocks a run.
 	granted, gotWelcome := s.bill.grantWelcome(user)
 
-	if user.Credits() < 1 {
-		sendError(ctx, 402, "out of credits — top up at "+s.cfg.AccountURL)
+	if !user.Funded() {
+		sendError(ctx, 402, paymentRequired+s.cfg.AccountURL)
 		return
 	}
 
@@ -141,6 +140,23 @@ func (s *Server) handleRun(ctx *fasthttp.RequestCtx) {
 	// What this program actually cost, for the next caller's estimate.
 	s.remember(requestSource(req), req, result)
 	sendJSON(ctx, result)
+}
+
+const paymentRequired = "add credits to run on our machines — top up at "
+
+// paying is the gate in front of every path that starts or schedules compute:
+// the account must have put money in. The welcome grant still lands, but a
+// grant alone never unlocks our machines.
+func (s *Server) paying(ctx *fasthttp.RequestCtx, u *User) (*User, bool) {
+	if u != nil && s.bill != nil {
+		s.bill.grantWelcome(u)
+		u = s.auth.userByID(u.ID)
+	}
+	if !u.Funded() {
+		sendError(ctx, 402, paymentRequired+s.cfg.AccountURL)
+		return nil, false
+	}
+	return u, true
 }
 
 func (s *Server) runFailed(ctx *fasthttp.RequestCtx, result *RunResult, err error) {

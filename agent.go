@@ -78,13 +78,11 @@ func (s *Server) handleAgentProxy(ctx *fasthttp.RequestCtx) {
 	}
 	path := string(ctx.Path())
 	controlsRun := string(ctx.Method()) == http.MethodPost && path == "/v1/agent/runs"
-	if controlsRun && user.Credits() < 1 {
-		s.bill.grantWelcome(user)
-		user = s.auth.userByID(user.ID)
-	}
-	if controlsRun && (user == nil || user.Credits() < 1) {
-		sendError(ctx, http.StatusPaymentRequired, "out of credits — top up at "+s.cfg.AccountURL)
-		return
+	if string(ctx.Method()) == http.MethodPost && !strings.HasSuffix(path, "/interrupt") {
+		var ok bool
+		if user, ok = s.paying(ctx, user); !ok {
+			return
+		}
 	}
 	if strings.TrimSpace(s.cfg.AgentToken) == "" {
 		sendError(ctx, http.StatusServiceUnavailable, "agent service is not configured")

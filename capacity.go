@@ -118,6 +118,10 @@ func (s *Server) handleCapacityReservations(ctx *fasthttp.RequestCtx) {
 }
 
 func (s *Server) createCapacityReservation(ctx *fasthttp.RequestCtx, u *User) {
+	u, ok := s.paying(ctx, u)
+	if !ok {
+		return
+	}
 	var request struct {
 		Product string `json:"product"`
 	}
@@ -234,7 +238,7 @@ func spendExactTx(tx *sql.Tx, userID string, credits int, reason string, now tim
 	if planExpire.Valid && planExpire.Time.Before(now) {
 		plan = 0
 	}
-	if free+plan+paid < credits {
+	if plan+paid <= 0 || free+plan+paid < credits {
 		return errInsufficientCredits
 	}
 	remaining := credits
