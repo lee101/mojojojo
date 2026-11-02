@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,8 +24,9 @@ type agentProxy struct {
 	maxRuns int
 	client  *http.Client
 
-	mu   sync.Mutex
-	runs map[string]int
+	mu       sync.Mutex
+	runs     map[string]int
+	reserved map[string]int64
 }
 
 func newAgentProxy(base string, maxRuns int) *agentProxy {
@@ -42,23 +44,31 @@ func newAgentProxy(base string, maxRuns int) *agentProxy {
 			IdleConnTimeout:       90 * time.Second,
 			ResponseHeaderTimeout: 30 * time.Second,
 		}},
-		runs: make(map[string]int),
+		runs:     make(map[string]int),
+		reserved: make(map[string]int64),
 	}
 }
 
-func (p *agentProxy) acquire(userID string) bool {
+// acquire reserves whatever of the balance no other live run holds; the agent
+// stops a run once it has used its reservation.
+func (p *agentProxy) acquire(userID string, available int64) (int64, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.runs[userID] >= p.maxRuns {
-		return false
+		return 0, false
 	}
+	budget := max(0, available-p.reserved[userID])
 	p.runs[userID]++
-	return true
+	p.reserved[userID] += budget
+	return budget, true
 }
 
-func (p *agentProxy) release(userID string) {
+func (p *agentProxy) release(userID string, budget int64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if p.reserved[userID] -= budget; p.reserved[userID] <= 0 {
+		delete(p.reserved, userID)
+	}
 	if p.runs[userID] <= 1 {
 		delete(p.runs, userID)
 		return
@@ -95,16 +105,25 @@ func (s *Server) handleAgentProxy(ctx *fasthttp.RequestCtx) {
 		s.agent = proxy
 	}
 
-	if controlsRun && !proxy.acquire(user.ID) {
-		sendError(ctx, http.StatusTooManyRequests,
-			fmt.Sprintf("at most %d agent runs may be active for this account", proxy.maxRuns))
-		return
+	var budget int64
+	if controlsRun {
+		var ok bool
+		if budget, ok = proxy.acquire(user.ID, int64(float64(user.Credits())*s.cfg.AgentTokensPerCredit)); !ok {
+			sendError(ctx, http.StatusTooManyRequests,
+				fmt.Sprintf("at most %d agent runs may be active for this account", proxy.maxRuns))
+			return
+		}
 	}
 	var released sync.Once
 	release := func() {
 		if controlsRun {
-			released.Do(func() { proxy.release(user.ID) })
+			released.Do(func() { proxy.release(user.ID, budget) })
 		}
+	}
+	if controlsRun && budget <= 0 {
+		release()
+		sendError(ctx, http.StatusPaymentRequired, "your balance is reserved by a running agent run — top up at "+s.cfg.AccountURL)
+		return
 	}
 
 	upstreamCtx, cancel := context.WithCancel(context.Background())
@@ -128,6 +147,9 @@ func (s *Server) handleAgentProxy(ctx *fasthttp.RequestCtx) {
 	// mojojojo subject. Browser sessions and developer API keys stop here.
 	req.Header.Set("Authorization", "Bearer "+s.cfg.AgentToken)
 	req.Header.Set("X-Mojojojo-User", user.ID)
+	if controlsRun {
+		req.Header.Set("X-Mojojojo-Budget-Tokens", strconv.FormatInt(budget, 10))
+	}
 
 	resp, err := proxy.client.Do(req)
 	if err != nil {

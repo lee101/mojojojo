@@ -51,7 +51,7 @@ func agentRequest(method, path, body string, authenticated bool) *fasthttp.Reque
 
 func TestAgentProxyRefusesAnonymous(t *testing.T) {
 	server := &Server{
-		cfg:   Config{LoginURL: "https://mojojojo.cc/auth/login", AgentToken: "agent-service-secret"},
+		cfg:   Config{LoginURL: "https://mojojojo.cc/auth/login", AgentToken: "agent-service-secret", AgentTokensPerCredit: 100},
 		auth:  testAgentAuth(t),
 		agent: newAgentProxy("http://127.0.0.1:1", 2),
 	}
@@ -89,7 +89,7 @@ func TestAgentProxyStreamsSSE(t *testing.T) {
 	defer upstream.Close()
 
 	server := &Server{
-		cfg:   Config{LoginURL: "https://mojojojo.cc/auth/login", AgentToken: "agent-service-secret"},
+		cfg:   Config{LoginURL: "https://mojojojo.cc/auth/login", AgentToken: "agent-service-secret", AgentTokensPerCredit: 100},
 		auth:  testAgentAuth(t),
 		agent: newAgentProxy(upstream.URL, 2),
 	}
@@ -130,7 +130,7 @@ func TestAgentProxyCancelsUpstreamWhenClientDisconnects(t *testing.T) {
 	defer upstream.Close()
 
 	app := &Server{
-		cfg:   Config{LoginURL: "https://mojojojo.cc/auth/login", AgentToken: "agent-service-secret"},
+		cfg:   Config{LoginURL: "https://mojojojo.cc/auth/login", AgentToken: "agent-service-secret", AgentTokensPerCredit: 100},
 		auth:  testAgentAuth(t),
 		agent: newAgentProxy(upstream.URL, 2),
 	}
@@ -229,5 +229,20 @@ func TestAgentSettlementAccruesChargesAndIsIdempotent(t *testing.T) {
 	}
 	if usage != 2 || debits != 1 || balance != 9 {
 		t.Fatalf("usage=%d debits=%d balance=%d", usage, debits, balance)
+	}
+}
+
+func TestConcurrentAgentRunsShareOneReservation(t *testing.T) {
+	proxy := newAgentProxy("http://127.0.0.1:1", 2)
+	if budget, ok := proxy.acquire("u", 1000); !ok || budget != 1000 {
+		t.Fatalf("first run: %d %v", budget, ok)
+	}
+	if budget, ok := proxy.acquire("u", 1000); !ok || budget != 0 {
+		t.Fatalf("second run reserved %d of an already reserved balance", budget)
+	}
+	proxy.release("u", 0)
+	proxy.release("u", 1000)
+	if budget, ok := proxy.acquire("u", 1000); !ok || budget != 1000 {
+		t.Fatalf("after release: %d %v", budget, ok)
 	}
 }

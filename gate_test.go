@@ -107,8 +107,10 @@ func TestEveryComputePathRefusesAnUnfundedAccount(t *testing.T) {
 	s, runs := gateServer(t)
 	s.cfg.AgentToken = "agent-service-secret"
 	var upstream atomic.Int64
+	var budget atomic.Value
 	agent := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		upstream.Add(1)
+		budget.Store(r.Header.Get("X-Mojojojo-Budget-Tokens"))
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	}))
@@ -172,6 +174,9 @@ func TestEveryComputePathRefusesAnUnfundedAccount(t *testing.T) {
 	}
 	if ctx := gateRequest(s, key, "POST", "/v1/agent/runs", `{"prompt":"hi"}`); ctx.Response.StatusCode() != 200 {
 		t.Fatalf("funded agent run: %d %s", ctx.Response.StatusCode(), ctx.Response.Body())
+	}
+	if got := budget.Load(); got == "" || got == "0" {
+		t.Fatalf("agent run carried budget %q", got)
 	}
 }
 
