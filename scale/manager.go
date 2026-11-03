@@ -100,8 +100,17 @@ func (m *Manager) tick(kind Kind) {
 	snapshot.Rented = m.count(kind)
 	snapshot.SpentTodayUSD = m.spent()
 
-	offer := Cheapest(m.allOffers(), kind)
+	offers := m.allOffers()
+	offer := Cheapest(offers, kind)
+	var workloadReason string
+	if snapshot.Workload != nil {
+		quote := CheapestWorkload(offers, kind, *snapshot.Workload)
+		offer, workloadReason = quote.Offer, quote.Reason
+	}
 	action := Decide(snapshot, m.Limits[kind], offer, time.Since(m.changed(kind)))
+	if workloadReason != "" {
+		action.Reason += "; " + workloadReason
+	}
 
 	switch action.Scale {
 	case 1:

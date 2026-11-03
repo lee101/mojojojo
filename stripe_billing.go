@@ -180,6 +180,15 @@ type stripeCheckoutRequest struct {
 }
 
 func (s *Server) handleStripeCheckout(ctx *fasthttp.RequestCtx) {
+	s.startCheckout(ctx, false)
+}
+
+// startCheckout creates an embedded Checkout Session for the signed-in user.
+// inline sessions stay on the page that opened them (a business subdomain): they
+// complete with redirect_on_completion=never and the page learns of success from
+// Stripe.js, while the credits themselves arrive through the same webhook as
+// every other purchase.
+func (s *Server) startCheckout(ctx *fasthttp.RequestCtx, inline bool) {
 	user := s.auth.userFromSession(ctx)
 	if user == nil {
 		sendError(ctx, fasthttp.StatusUnauthorized, "sign in before starting checkout")
@@ -261,6 +270,10 @@ func (s *Server) handleStripeCheckout(ctx *fasthttp.RequestCtx) {
 				"mojojojo_credits_per_period": strconv.Itoa(offer.CreditsPerPeriod),
 			},
 		}
+	}
+	if inline {
+		params.ReturnURL = nil
+		params.RedirectOnCompletion = stripe.String(string(stripe.CheckoutSessionRedirectOnCompletionNever))
 	}
 	params.SetIdempotencyKey("mojojojo-checkout-" + randomToken(18))
 	session, err := s.stripe.gateway.CreateCheckoutSession(requestCtx, params)

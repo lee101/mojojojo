@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -25,12 +26,19 @@ type Config struct {
 	// EdgeURL is the Cloudflare Worker in wasmworker/, if one is deployed.
 	// EdgeToken is the secret it checks; without it, anybody who finds the URL
 	// is spending our Cloudflare budget.
-	EdgeURL    string
-	EdgeToken  string
-	LoginURL   string
-	AccountURL string
-	SignupURL  string
-	TopUpURL   string
+	EdgeURL   string
+	EdgeToken string
+	// CloudURL is the mojocloud daemon behind the business subdomains; empty
+	// means none is live. BusinessDomains are the apexes whose single-label
+	// subdomains are catalog businesses.
+	CloudURL        string
+	CloudToken      string
+	BusinessDomain  string
+	BusinessDomains []string
+	LoginURL        string
+	AccountURL      string
+	SignupURL       string
+	TopUpURL        string
 
 	// Stripe is optional at process startup so a developer can still run the
 	// execution service without payment credentials. When configured, Checkout
@@ -113,7 +121,15 @@ func loadConfig() Config {
 	_ = godotenv.Load()
 	siteBaseURL := strings.TrimRight(env("SITE_BASE_URL", "https://mojojojo.cc"), "/")
 	runnerToken := env("RUNNER_TOKEN", randomToken(24))
+	apex := siteBaseURL
+	if u, err := url.Parse(siteBaseURL); err == nil && u.Hostname() != "" {
+		apex = u.Hostname()
+	}
 	return Config{
+		CloudURL:             strings.TrimRight(env("MOJOCLOUD_URL", ""), "/"),
+		CloudToken:           env("MOJOCLOUD_TOKEN", runnerToken),
+		BusinessDomain:       apex,
+		BusinessDomains:      strings.Split(env("BUSINESS_DOMAINS", apex), ","),
 		Port:                 env("PORT", "4341"),
 		Debug:                env("DEV", "false") == "true",
 		SiteBaseURL:          siteBaseURL,

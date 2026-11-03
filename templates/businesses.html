@@ -1,0 +1,32 @@
+{{template "head" .}}
+<main class="biz">
+  <section class="biz-hero">
+    <p class="eyebrow mono">MOJO / BUSINESSES</p>
+    <h1>Metered APIs, each on its own subdomain</h1>
+    <p class="lede">Small Mojo services you call over HTTP and pay for by use. One
+    account, one API key, one credit balance; every business is served at
+    <code class="inl">&lt;name&gt;.{{.Domain}}</code>. Storage tiers to R2 and
+    rented Hetzner capacity behind the scenes. The <a href="/database">database</a> is the anchor product.</p>
+    <p class="dim mono">{{.Built}} built · {{.Total}} total</p>
+  </section>
+  <section class="biz-grid">
+  {{range .Items}}
+    <article class="biz-card" data-slug="{{.Slug}}">
+      <p class="mono dim">{{.Kind}}</p>
+      <h2><a href="https://{{.Host}}/">{{.Title}}</a></h2>
+      <p>{{.Pitch}}</p>
+      <p class="dim mono">{{.Host}}</p>
+      <div class="card-actions">{{if eq .Status "built"}}<span class="acid">Built</span>{{else}}<span class="dim">Building</span>{{end}}
+      <a href="/v1/businesses/{{.Slug}}">pricing JSON</a></div>
+    </article>
+  {{end}}
+  </section>
+</main>
+<style>
+.biz-hero{padding:45px 0 22px;max-width:760px}.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--acid)}
+.biz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:45px}
+.biz-card{padding:19px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(160deg,var(--panel),var(--surface))}
+.biz-card h2{margin:4px 0 8px;font-size:19px}.card-actions{display:flex;gap:14px;align-items:center}
+@media(max-width:900px){.biz-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.biz-grid{grid-template-columns:1fr}}
+</style>
+{{template "foot" .}}

@@ -1,0 +1,974 @@
+[
+ {
+  "slug": "kv",
+  "title": "Document KV store",
+  "pitch": "WAL+LSM segments, secondary indexes, SIMD columnar filter scans; beats sqlite on scans, honest on point ops",
+  "kind": "primitive",
+  "parts": [
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-kv",
+  "status": "built"
+ },
+ {
+  "slug": "objstore",
+  "title": "Content-addressed object store",
+  "pitch": "PUT/GET/HEAD/DELETE/list/multipart/range, xxh3 CDC dedupe, local disk, crash-safe chunk commit",
+  "kind": "primitive",
+  "parts": [
+   "objstore"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-objstore",
+  "status": "building"
+ },
+ {
+  "slug": "s3-gateway",
+  "title": "S3 API gateway",
+  "pitch": "SigV4, presigned URLs, path/virtual-host, boto3 and aws-cli conformance over objstore",
+  "kind": "primitive",
+  "parts": [
+   "s3-gateway"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-s3-gateway",
+  "status": "building"
+ },
+ {
+  "slug": "queue",
+  "title": "Durable job queue",
+  "pitch": "Visibility timeout, retries, DLQ, delayed jobs, idempotency, long-poll leases on kv",
+  "kind": "primitive",
+  "parts": [
+   "queue"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-queue",
+  "status": "building"
+ },
+ {
+  "slug": "auth-meter",
+  "title": "Tenancy, keys, quotas, metering",
+  "pitch": "Namespaces, hashed API keys/scopes, quota counters, usage ledger, mojojojo ms-billing exporter",
+  "kind": "primitive",
+  "parts": [
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-auth-meter",
+  "status": "building"
+ },
+ {
+  "slug": "sdk",
+  "title": "mojocloud Python SDK",
+  "pitch": "Embedded and remote modes with identical API over kv/obj/queue; ctypes fast paths",
+  "kind": "primitive",
+  "parts": [
+   "sdk"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-sdk",
+  "status": "built"
+ },
+ {
+  "slug": "search-hooks",
+  "title": "Vector and blob search hooks",
+  "pitch": "SIMD cosine brute force, gobed embeddings, mirror to mojojojo /v1/vector",
+  "kind": "primitive",
+  "parts": [
+   "search-hooks"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-search-hooks",
+  "status": "built"
+ },
+ {
+  "slug": "r2-tier",
+  "title": "R2 cold tiering",
+  "pitch": "Verified upload then drop local, read-through LRU cache, fake-S3 tests",
+  "kind": "primitive",
+  "parts": [
+   "r2-tier"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-r2-tier",
+  "status": "built"
+ },
+ {
+  "slug": "daemon",
+  "title": "mojocloudd service",
+  "pitch": "Integrates all parts, bounded threads/memory, systemd unit, load test",
+  "kind": "primitive",
+  "parts": [
+   "daemon"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-daemon",
+  "status": "building"
+ },
+ {
+  "slug": "fsck-gc",
+  "title": "Compaction, GC and fsck",
+  "pitch": "Segment compaction, mark-sweep chunk GC with grace, mcfsck, crash-injection suite",
+  "kind": "primitive",
+  "parts": [
+   "fsck-gc"
+  ],
+  "repo": "https://github.com/lee101/mojocloud-fsck-gc",
+  "status": "built"
+ },
+ {
+  "slug": "paste-vault",
+  "title": "Paste Vault",
+  "pitch": "Expiring encrypted pastebin with burn-after-read and short links",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "objstore",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-paste-vault",
+  "status": "building"
+ },
+ {
+  "slug": "img-drop",
+  "title": "Img Drop",
+  "pitch": "Free image host with dedupe, resize on read, hotlink quotas",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "s3-gateway",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-img-drop",
+  "status": "building"
+ },
+ {
+  "slug": "form-catcher",
+  "title": "Form Catcher",
+  "pitch": "Drop-in HTML form backend with spam scoring, CSV export, webhooks",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-form-catcher",
+  "status": "building"
+ },
+ {
+  "slug": "link-shrink",
+  "title": "Link Shrink",
+  "pitch": "Short links with click analytics and SIMD-aggregated dashboards",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-link-shrink",
+  "status": "building"
+ },
+ {
+  "slug": "waitlist-kit",
+  "title": "Waitlist Kit",
+  "pitch": "Viral referral waitlist pages with position-jump sharing",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-waitlist-kit",
+  "status": "building"
+ },
+ {
+  "slug": "flag-pit",
+  "title": "Flag Pit",
+  "pitch": "Tiny feature flag and A/B config service with local SDK cache",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "sdk"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-flag-pit",
+  "status": "building"
+ },
+ {
+  "slug": "cron-ping",
+  "title": "Cron Ping",
+  "pitch": "Hosted cron plus dead-man-switch heartbeat monitoring and alerts",
+  "kind": "business",
+  "parts": [
+   "queue",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-cron-ping",
+  "status": "building"
+ },
+ {
+  "slug": "webhook-relay",
+  "title": "Webhook Relay",
+  "pitch": "Capture, replay and fan-out webhooks with retry and inspection UI",
+  "kind": "business",
+  "parts": [
+   "queue",
+   "kv",
+   "objstore"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-webhook-relay",
+  "status": "building"
+ },
+ {
+  "slug": "file-xfer",
+  "title": "File Xfer",
+  "pitch": "Send big files via presigned links with expiry and download counters",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "s3-gateway"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-file-xfer",
+  "status": "building"
+ },
+ {
+  "slug": "backup-buddy",
+  "title": "Backup Buddy",
+  "pitch": "Dedupe encrypted dir backups to R2 with rclone-compatible S3 endpoint",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "r2-tier",
+   "s3-gateway"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-backup-buddy",
+  "status": "building"
+ },
+ {
+  "slug": "dataset-hub",
+  "title": "Dataset Hub",
+  "pitch": "Versioned dataset hosting with dedupe diffs and column previews",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-dataset-hub",
+  "status": "building"
+ },
+ {
+  "slug": "embed-box",
+  "title": "Embed Box",
+  "pitch": "Upload text, get a semantic search API in one call",
+  "kind": "business",
+  "parts": [
+   "search-hooks",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-embed-box",
+  "status": "building"
+ },
+ {
+  "slug": "photo-dupes",
+  "title": "Photo Dupes",
+  "pitch": "Perceptual-hash duplicate and near-duplicate finder for photo libraries",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "search-hooks"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-photo-dupes",
+  "status": "building"
+ },
+ {
+  "slug": "ocr-queue",
+  "title": "OCR Queue",
+  "pitch": "Batch document-to-text pipeline with job progress and searchable results",
+  "kind": "business",
+  "parts": [
+   "queue",
+   "objstore",
+   "search-hooks"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-ocr-queue",
+  "status": "building"
+ },
+ {
+  "slug": "rss-vault",
+  "title": "RSS Vault",
+  "pitch": "Feed archiver and full-text searchable reader",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue",
+   "search-hooks"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-rss-vault",
+  "status": "building"
+ },
+ {
+  "slug": "change-watch",
+  "title": "Change Watch",
+  "pitch": "Page-change monitor with diff snapshots and notifications",
+  "kind": "business",
+  "parts": [
+   "queue",
+   "objstore",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-change-watch",
+  "status": "building"
+ },
+ {
+  "slug": "status-page",
+  "title": "Status Page",
+  "pitch": "Hosted uptime page driven by heartbeats and incidents",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-status-page",
+  "status": "building"
+ },
+ {
+  "slug": "uptime-grid",
+  "title": "Uptime Grid",
+  "pitch": "Probe runner with SIMD percentile rollups and public graphs",
+  "kind": "business",
+  "parts": [
+   "queue",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-uptime-grid",
+  "status": "building"
+ },
+ {
+  "slug": "log-lens",
+  "title": "Log Lens",
+  "pitch": "Ship compressed logs, grep and aggregate at SIMD speed",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-log-lens",
+  "status": "building"
+ },
+ {
+  "slug": "metrics-mini",
+  "title": "Metrics Mini",
+  "pitch": "Tiny time-series store with downsampling and sparkline embeds",
+  "kind": "business",
+  "parts": [
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-metrics-mini",
+  "status": "building"
+ },
+ {
+  "slug": "trace-sketch",
+  "title": "Trace Sketch",
+  "pitch": "Span collector with flamegraph SVG render",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "objstore"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-trace-sketch",
+  "status": "building"
+ },
+ {
+  "slug": "poll-pop",
+  "title": "Poll Pop",
+  "pitch": "Embeddable polls with live results and share cards",
+  "kind": "business",
+  "parts": [
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-poll-pop",
+  "status": "building"
+ },
+ {
+  "slug": "guestbook-api",
+  "title": "Guestbook API",
+  "pitch": "Comments and guestbooks for static sites with moderation queue",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-guestbook-api",
+  "status": "building"
+ },
+ {
+  "slug": "kudos-wall",
+  "title": "Kudos Wall",
+  "pitch": "Team and community appreciation wall with weekly digest",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-kudos-wall",
+  "status": "building"
+ },
+ {
+  "slug": "changelog-host",
+  "title": "Changelog Host",
+  "pitch": "Product changelog pages with RSS and subscribe widget",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "objstore"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-changelog-host",
+  "status": "building"
+ },
+ {
+  "slug": "invoice-box",
+  "title": "Invoice Box",
+  "pitch": "Freelancer invoices to PDF, payment links, reminders",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "queue",
+   "objstore",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-invoice-box",
+  "status": "building"
+ },
+ {
+  "slug": "receipt-vault",
+  "title": "Receipt Vault",
+  "pitch": "Receipt photo upload, extraction and expense export",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "queue",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-receipt-vault",
+  "status": "building"
+ },
+ {
+  "slug": "signed-docs",
+  "title": "Signed Docs",
+  "pitch": "Hash-anchored document timestamps and verifiable share links",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-signed-docs",
+  "status": "building"
+ },
+ {
+  "slug": "proof-stamp",
+  "title": "Proof Stamp",
+  "pitch": "Public content-hash timestamp ledger with embeddable badges",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "objstore"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-proof-stamp",
+  "status": "building"
+ },
+ {
+  "slug": "sticker-bin",
+  "title": "Sticker Bin",
+  "pitch": "User-uploaded emoji and sticker packs with cached delivery",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "s3-gateway"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-sticker-bin",
+  "status": "building"
+ },
+ {
+  "slug": "meme-queue",
+  "title": "Meme Queue",
+  "pitch": "Template meme maker with scheduled auto-post jobs",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "queue"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-meme-queue",
+  "status": "building"
+ },
+ {
+  "slug": "recipe-box",
+  "title": "Recipe Box",
+  "pitch": "Recipe saver with ingredient search and scaling",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "search-hooks"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-recipe-box",
+  "status": "building"
+ },
+ {
+  "slug": "snippet-lab",
+  "title": "Snippet Lab",
+  "pitch": "Code snippet gallery with run-in-mojosub and speed badge",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "objstore"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-snippet-lab",
+  "status": "building"
+ },
+ {
+  "slug": "bench-board",
+  "title": "Bench Board",
+  "pitch": "Community leaderboard of Python vs Mojo speedups",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-bench-board",
+  "status": "building"
+ },
+ {
+  "slug": "mojo-registry",
+  "title": "Mojo Registry",
+  "pitch": "Private package index for Mojo/Python wheels over S3",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "s3-gateway",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-mojo-registry",
+  "status": "building"
+ },
+ {
+  "slug": "build-cache",
+  "title": "Build Cache",
+  "pitch": "Remote content-addressed build and test cache for CI",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-build-cache",
+  "status": "building"
+ },
+ {
+  "slug": "model-cache",
+  "title": "Model Cache",
+  "pitch": "Dedupe mirror for model weights with range reads and R2 tiering",
+  "kind": "business",
+  "parts": [
+   "objstore",
+   "r2-tier",
+   "s3-gateway"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-model-cache",
+  "status": "building"
+ },
+ {
+  "slug": "tenant-meter",
+  "title": "Tenant Meter",
+  "pitch": "Usage-based billing dashboards and embeddable quota widgets",
+  "kind": "business",
+  "parts": [
+   "auth-meter",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-tenant-meter",
+  "status": "building"
+ },
+ {
+  "slug": "secret-drop",
+  "title": "Secret Drop",
+  "pitch": "One-time encrypted secret sharing for teams with audit trail",
+  "kind": "business",
+  "parts": [
+   "kv",
+   "auth-meter"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-secret-drop",
+  "status": "building"
+ },
+ {
+  "slug": "mail-capture",
+  "title": "Mail Capture",
+  "pitch": "Dev SMTP sink with inbox API and attachment storage",
+  "kind": "business",
+  "parts": [
+   "queue",
+   "objstore",
+   "kv"
+  ],
+  "repo": "https://github.com/lee101/mojobiz-mail-capture",
+  "status": "building"
+ },
+ {
+  "slug": "how",
+  "title": "how.nz agent",
+  "pitch": "Ask anything: a Mojo agent that searches, reads and draws the answer, streamed over SSE; flat run fee plus per-token pricing",
+  "kind": "product",
+  "parts": [
+   "how"
+  ],
+  "repo": "https://github.com/lee101/hownz",
+  "status": "built",
+  "upstream": "http://127.0.0.1:4350"
+ },
+ {
+  "slug": "embed",
+  "status": "built",
+  "repo": "https://github.com/lee101/mojobusinesses",
+  "upstream": "http://127.0.0.1:4360",
+  "title": "Embeddings API",
+  "pitch": "OpenAI-compatible text embeddings: E5-small-v2 (384 dims) on Mojo CPU kernels, $0.02 per million tokens",
+  "kind": "model",
+  "parts": [
+   "model-embed"
+  ],
+  "model": "intfloat/e5-small-v2 (MIT), revision ffb93f3b",
+  "endpoints": [
+   "POST /v1/embeddings",
+   "GET /v1/models"
+  ],
+  "example": "curl https://embed.mojojojo.cc/v1/embeddings \\\n  -H \"Authorization: Bearer $MOJOJOJO_KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"input\":[\"how do I reset my password\"],\"input_type\":\"query\"}'",
+  "notes": [
+   "input_type is \"query\" or \"passage\" (E5 prefixes are added for you); default passage.",
+   "Vectors are L2-normalised, 384 dimensions; up to 512 inputs of 20,000 characters per request.",
+   "Matches the PyTorch reference to 2e-7 max abs difference (cosine 0.9999999).",
+   "Speed: 0.40x PyTorch at batch 1 up to 0.93x at batch 200 on 2 pinned cores. It is a convenience and price play, not a latency win."
+  ],
+  "tools": [
+   {
+    "name": "embed_text",
+    "description": "Embed one or more texts with E5-small-v2 (384-dim, L2-normalised). Use input_type=query for search queries and passage for documents.",
+    "method": "POST",
+    "path": "/v1/embeddings",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "input": {
+       "oneOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "maxItems": 512
+        }
+       ]
+      },
+      "input_type": {
+       "type": "string",
+       "enum": [
+        "query",
+        "passage"
+       ]
+      }
+     },
+     "required": [
+      "input"
+     ]
+    }
+   }
+  ],
+  "playground": {
+   "path": "/v1/embeddings",
+   "body": {
+    "input": [
+     "how do I reset my password",
+     "password reset instructions"
+    ],
+    "input_type": "query"
+   },
+   "summary": "vectors"
+  }
+ },
+ {
+  "slug": "moderate",
+  "status": "built",
+  "repo": "https://github.com/lee101/mojobusinesses",
+  "upstream": "http://127.0.0.1:4360",
+  "title": "Image Moderation API",
+  "pitch": "NSFW image classification on a Mojo ViT, $1 per thousand images, no image retention",
+  "kind": "model",
+  "parts": [
+   "model-moderate"
+  ],
+  "model": "Falconsai/nsfw_image_detection (Apache-2.0)",
+  "endpoints": [
+   "POST /v1/moderations/image"
+  ],
+  "example": "curl https://moderate.mojojojo.cc/v1/moderations/image \\\n  -H \"Authorization: Bearer $MOJOJOJO_KEY\" -H \"Content-Type: image/png\" \\\n  --data-binary @photo.png",
+  "notes": [
+   "Send the raw image, a multipart field named file, or JSON {\"images_base64\":[...]}. Up to 8 images, 50 megapixels each.",
+   "Returns normal/nsfw probabilities and flagged (nsfw >= 0.5). A binary classifier: it does not detect violence, minors or text.",
+   "Logits match PyTorch to 5.5e-06.",
+   "Speed: 0.65x PyTorch (about 2 images/s on 2 cores). Images are decoded in memory and never written to disk."
+  ],
+  "tools": [
+   {
+    "name": "moderate_image",
+    "description": "Classify images as normal or nsfw. Images are base64-encoded png/jpeg/webp/gif/bmp.",
+    "method": "POST",
+    "path": "/v1/moderations/image",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "images_base64": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "minItems": 1,
+       "maxItems": 8
+      }
+     },
+     "required": [
+      "images_base64"
+     ]
+    }
+   }
+  ],
+  "playground": {
+   "path": "/v1/moderations/image",
+   "body": {},
+   "file": {
+    "field": "images_base64",
+    "array": true,
+    "accept": "image/*",
+    "label": "Choose an image"
+   }
+  }
+ },
+ {
+  "slug": "rerank",
+  "status": "built",
+  "repo": "https://github.com/lee101/mojobusinesses",
+  "upstream": "http://127.0.0.1:4360",
+  "title": "Rerank API",
+  "pitch": "Cohere-style reranking with the MiniLM-L6 cross-encoder on Mojo CPU kernels, $10 per million pairs",
+  "kind": "model",
+  "parts": [
+   "model-rerank"
+  ],
+  "model": "cross-encoder/ms-marco-MiniLM-L6-v2 (Apache-2.0), revision 233902d2",
+  "endpoints": [
+   "POST /v1/rerank"
+  ],
+  "example": "curl https://rerank.mojojojo.cc/v1/rerank \\\n  -H \"Authorization: Bearer $MOJOJOJO_KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"query\":\"capital of france\",\"documents\":[\"Paris is the capital.\",\"Bananas are yellow.\"],\"top_n\":1}'",
+  "notes": [
+   "Scores are raw cross-encoder logits (higher is more relevant); not comparable across queries.",
+   "Up to 512 documents per request; each document is truncated to 512 tokens with the query.",
+   "Max logit difference to PyTorch 2.9e-06.",
+   "Speed: 0.34x PyTorch at batch 1, 0.89x at batch 200. English MS MARCO passages only; evaluate on your own data."
+  ],
+  "tools": [
+   {
+    "name": "rerank_documents",
+    "description": "Score documents against a query with a MiniLM cross-encoder and return them best first (higher logit is more relevant).",
+    "method": "POST",
+    "path": "/v1/rerank",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "query": {
+       "type": "string"
+      },
+      "documents": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "maxItems": 512
+      },
+      "top_n": {
+       "type": "integer",
+       "minimum": 1
+      }
+     },
+     "required": [
+      "query",
+      "documents"
+     ]
+    }
+   }
+  ],
+  "playground": {
+   "path": "/v1/rerank",
+   "body": {
+    "query": "capital of france",
+    "documents": [
+     "Paris is the capital of France.",
+     "Bananas are yellow.",
+     "Lyon is a city in France."
+    ],
+    "top_n": 3
+   }
+  }
+ },
+ {
+  "slug": "score",
+  "status": "built",
+  "repo": "https://github.com/lee101/mojobusinesses",
+  "upstream": "http://127.0.0.1:4360",
+  "title": "Tabular Score API",
+  "pitch": "Train a tree ensemble on your rows, then score at up to 570x scikit-learn's single-row speed on Mojo kernels",
+  "kind": "model",
+  "parts": [
+   "model-score"
+  ],
+  "model": "scikit-learn HistGradientBoosting + ExtraTrees, exported to the Mojo forest kernel",
+  "endpoints": [
+   "POST /v1/models",
+   "GET /v1/models",
+   "GET /v1/models/{name}",
+   "POST /v1/models/{name}/predict",
+   "DELETE /v1/models/{name}"
+  ],
+  "example": "curl https://score.mojojojo.cc/v1/models \\\n  -H \"Authorization: Bearer $MOJOJOJO_KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"name\":\"churn\",\"target\":\"churned\",\"rows\":[{\"age\":31,\"plan\":\"pro\",\"churned\":\"no\"}, ...]}'\n\ncurl https://score.mojojojo.cc/v1/models/churn/predict -H \"Authorization: Bearer $MOJOJOJO_KEY\" \\\n  -d '{\"rows\":[{\"age\":44,\"plan\":\"free\"}]}'",
+  "notes": [
+   "Binary targets only; up to 200,000 rows and 200 feature columns; training is capped at 120 seconds. Rows with numbers and strings; missing values are imputed.",
+   "Models are private to your account. The response includes a holdout AUC from a 80/20 split when you send at least 100 rows.",
+   "Serving is exact: probabilities match scikit-learn to 1e-15 on the shipped benchmark models.",
+   "Speed versus scikit-learn on 2 cores: 12-570x at batch 1, 2-8x at batch 64-1024, 1.0-4x at batch 8192 (gradient boosting is only 1.03x at large batch).",
+   "Not for credit, hiring, insurance or medical decisions."
+  ],
+  "tools": [
+   {
+    "name": "train_model",
+    "description": "Train a binary classifier on rows (list of objects) and the target column name; returns holdout AUC. Models are private to your account.",
+    "method": "POST",
+    "path": "/v1/models",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string"
+      },
+      "target": {
+       "type": "string"
+      },
+      "rows": {
+       "type": "array",
+       "items": {
+        "type": "object"
+       }
+      }
+     },
+     "required": [
+      "name",
+      "target",
+      "rows"
+     ]
+    }
+   },
+   {
+    "name": "list_models",
+    "description": "List your trained models.",
+    "method": "GET",
+    "path": "/v1/models",
+    "inputSchema": {
+     "type": "object",
+     "properties": {},
+     "required": []
+    }
+   },
+   {
+    "name": "predict",
+    "description": "Score rows with a trained model; returns probability of the positive class and a label per row.",
+    "method": "POST",
+    "path": "/v1/models/{name}/predict",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string"
+      },
+      "rows": {
+       "type": "array",
+       "items": {
+        "type": "object"
+       }
+      }
+     },
+     "required": [
+      "name",
+      "rows"
+     ]
+    }
+   },
+   {
+    "name": "delete_model",
+    "description": "Delete a trained model.",
+    "method": "DELETE",
+    "path": "/v1/models/{name}",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "name"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "slug": "transcribe",
+  "status": "built",
+  "repo": "https://github.com/lee101/mojobusinesses",
+  "upstream": "http://127.0.0.1:4360",
+  "title": "Speech-to-Text API",
+  "pitch": "Whisper tiny.en transcription on Mojo CPU kernels, OpenAI-compatible, $0.003 per audio minute",
+  "kind": "model",
+  "parts": [
+   "model-transcribe"
+  ],
+  "model": "openai/whisper-tiny.en (MIT)",
+  "endpoints": [
+   "POST /v1/audio/transcriptions"
+  ],
+  "example": "curl https://transcribe.mojojojo.cc/v1/audio/transcriptions \\\n  -H \"Authorization: Bearer $MOJOJOJO_KEY\" -F file=@clip.wav",
+  "notes": [
+   "wav, flac or ogg; mono-mixed and resampled to 16 kHz; up to 300 seconds per request, decoded in 30 second windows.",
+   "English only, smallest Whisper model: expect visibly more errors than larger models. No word error rate is claimed; parity was checked only as identical greedy tokens versus Hugging Face on synthetic clips.",
+   "Speed: 0.93x PyTorch end to end (32 tokens), 0.71x on the encoder.",
+   "Audio is decoded in memory and never written to disk."
+  ],
+  "tools": [
+   {
+    "name": "transcribe_audio",
+    "description": "Transcribe English speech (wav/flac/ogg, base64, up to 300 s) with Whisper tiny.en.",
+    "method": "POST",
+    "path": "/v1/audio/transcriptions",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "audio_base64": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "audio_base64"
+     ]
+    }
+   }
+  ],
+  "playground": {
+   "path": "/v1/audio/transcriptions",
+   "body": {},
+   "file": {
+    "field": "audio_base64",
+    "array": false,
+    "accept": "audio/wav,audio/flac,audio/ogg,.wav,.flac,.ogg",
+    "label": "Choose a wav, flac or ogg clip"
+   }
+  }
+ }
+]

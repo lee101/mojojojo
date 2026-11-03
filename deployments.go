@@ -38,6 +38,11 @@ type functionManifest struct {
 	Packages     []string `json:"packages,omitempty"`
 	TimeoutMs    int      `json:"timeout_ms,omitempty"`
 	Capabilities []string `json:"capabilities,omitempty"`
+	Billing      string   `json:"billing,omitempty"`
+	GPU          bool     `json:"gpu,omitempty"`
+	// PriceCredits is the creator's fee per call on top of the compute, charged
+	// to the caller and shared with the owner (see creator.go). Caller-paid only.
+	PriceCredits int `json:"price_credits,omitempty"`
 }
 
 type computeManifest struct {
@@ -252,6 +257,12 @@ func readBundle(body []byte) ([]bundleFile, deploymentManifest, error) {
 		return nil, deploymentManifest{}, errors.New("compute profile, health_path, and min_instances require persistent mode")
 	}
 	for name, fn := range manifest.Functions {
+		if fn.Billing != "" && fn.Billing != "owner" && fn.Billing != "caller" {
+			return nil, deploymentManifest{}, fmt.Errorf("function %q billing must be owner or caller", name)
+		}
+		if fn.PriceCredits < 0 || fn.PriceCredits > maxCreatorPriceCredits || (fn.PriceCredits > 0 && fn.Billing != "caller") {
+			return nil, deploymentManifest{}, fmt.Errorf("function %q: price_credits must be 0-%d and needs billing: caller", name, maxCreatorPriceCredits)
+		}
 		if !validFunctionName(name) || (fn.Language != "python" && fn.Language != "mojo") {
 			return nil, deploymentManifest{}, fmt.Errorf("invalid function %q", name)
 		}

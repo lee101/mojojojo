@@ -95,8 +95,8 @@ func (s *Server) handleDataNamespaces(ctx *fasthttp.RequestCtx) {
 			sendError(ctx, 500, "could not check database allowance")
 			return
 		}
-		if databases >= dataNamespaceLimit {
-			sendError(ctx, 413, fmt.Sprintf("an account can create up to %d databases", dataNamespaceLimit))
+		if tier := dataTierFor(u); databases >= tier.Databases {
+			sendError(ctx, 413, fmt.Sprintf("your %s tier allows %d databases", tier.Name, tier.Databases))
 			return
 		}
 		id, now := "db_"+randomToken(12), time.Now().UTC()
@@ -137,8 +137,8 @@ func (s *Server) handleDataNamespaces(ctx *fasthttp.RequestCtx) {
 		}
 	}
 	sendJSON(ctx, map[string]any{"ok": true, "databases": items,
-		"limits": map[string]any{"databases": dataNamespaceLimit, "records_per_database": dataRecordLimit,
-			"record_bytes": dataRecordMaxBytes, "bytes_per_database": dataDatabaseMaxBytes}})
+		"limits": map[string]any{"databases": dataTierFor(u).Databases, "records_per_database": dataTierFor(u).RecordsPerDatabase,
+			"record_bytes": dataRecordMaxBytes, "bytes_per_database": dataTierFor(u).BytesPerDatabase, "tier": dataTierFor(u).Name}})
 }
 
 func (s *Server) dataNamespace(userID, namespaceID string) (*dataNamespace, error) {
@@ -165,12 +165,23 @@ func (s *Server) handleDataNamespaceRoute(ctx *fasthttp.RequestCtx, tail string)
 		sendError(ctx, 404, "database not found")
 		return
 	}
+	meter := "db.write"
+	if ctx.IsGet() {
+		meter = "db.read"
+	}
+	if s.meters != nil && s.meterBlocked(u, meter) {
+		sendError(ctx, 402, "free allowance used — add credits at "+s.cfg.TopUpURL)
+		return
+	}
 	switch {
 	case ctx.IsGet():
+		s.meterAdd(u.ID, meter, 1)
 		s.handleDataRecordsList(ctx, namespace)
 	case ctx.IsPost() || ctx.IsPut():
+		s.meterAdd(u.ID, meter, 1)
 		s.handleDataRecordUpsert(ctx, u, namespace)
 	case ctx.IsDelete():
+		s.meterAdd(u.ID, meter, 1)
 		s.handleDataRecordDelete(ctx, namespace)
 	default:
 		sendError(ctx, 405, "method not allowed")
@@ -242,10 +253,10 @@ func (s *Server) handleDataRecordUpsert(ctx *fasthttp.RequestCtx, u *User, names
 		err = tx.QueryRow(`SELECT COUNT(*),COALESCE(SUM(pg_column_size(value)+octet_length(search_text)+octet_length(record_key)),0)
 			FROM data_records WHERE namespace_id=$1`, namespace.ID).Scan(&count, &usedBytes)
 	}
-	if err == nil && count > dataRecordLimit {
+	if err == nil && count > dataTierFor(u).RecordsPerDatabase {
 		err = errDataRecordLimit
 	}
-	if err == nil && usedBytes > dataDatabaseMaxBytes {
+	if err == nil && usedBytes > dataTierFor(u).BytesPerDatabase {
 		err = errDataStorageLimit
 	}
 	if err == nil {

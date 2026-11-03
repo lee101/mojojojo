@@ -1,0 +1,40 @@
+{{template "head" .}}
+<main class="mojoapps">
+  <section class="mojoapps-hero">
+    <p class="eyebrow mono">MOJO / APPS</p>
+    <h1>Real compiled Mojo projects</h1>
+    <p class="lede">Each project is a complete program compiled with Mojo, built to
+    showcase <a href="https://github.com/lee101/mojosub">mojosub</a> and the
+    mojojojo SDK. Clone one and run it, or drive the same code from
+    <a href="/">the hosted runtime</a> and the <a href="/agent">coding agent</a>.</p>
+    <p class="dim mono">{{.Published}} published · {{len .Apps}} total</p>
+  </section>
+  <section class="mojoapps-grid">
+  {{range .Apps}}
+    <article class="mojoapp-card" data-slug="{{.Slug}}">
+      <h2>{{.Title}}</h2>
+      <p>{{.Pitch}}</p>
+      <pre class="mojoapp-cmd"><code>git clone {{.Repo}}
+cd mojoapp-{{.Slug}} &amp;&amp; pixi run</code></pre>
+      <div class="card-actions">
+        <button type="button" class="btn ghost copy-cmd" data-cmd="git clone {{.Repo}} &amp;&amp; cd mojoapp-{{.Slug}} &amp;&amp; pixi run">Copy</button>
+        {{if eq .Status "published"}}<a href="{{.Repo}}">View source</a>{{else}}<span class="dim">Coming soon</span>{{end}}
+      </div>
+    </article>
+  {{end}}
+  </section>
+</main>
+<style>
+.mojoapps-hero{padding:45px 0 22px;max-width:760px}.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--acid)}
+.mojoapps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:45px}
+.mojoapp-card{display:flex;flex-direction:column;padding:19px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(160deg,var(--panel),var(--surface))}
+.mojoapp-card h2{font-size:20px;margin:.2em 0}.mojoapp-card p{margin:.3em 0}.mojoapp-cmd{font:12px var(--mono);overflow-x:auto;margin:.8em 0}
+.mojoapp-card .card-actions{margin-top:auto;display:flex;gap:12px;align-items:center}
+@media(max-width:800px){.mojoapps-grid{grid-template-columns:1fr 1fr}}@media(max-width:540px){.mojoapps-grid{grid-template-columns:1fr}}
+</style>
+<script>
+document.querySelectorAll('.copy-cmd').forEach(b=>b.addEventListener('click',()=>{
+  if(navigator.clipboard)navigator.clipboard.writeText(b.dataset.cmd).then(()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)});
+}));
+</script>
+{{template "foot" .}}

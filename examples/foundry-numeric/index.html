@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foundry Numeric Baseline</title>
+<style>body{max-width:760px;margin:60px auto;padding:24px;background:#12141c;color:#e4e6ee;font:18px system-ui}pre{overflow:auto;background:#222633;padding:20px;border-radius:12px}h1{color:#b7a1ff}a{color:#91ccff}</style>
+<main><h1>Train a tiny model. Take the artifact with you.</h1>
+<p>A bounded nearest-centroid classifier for binary numeric datasets. CPU-only, 512 rows per split, 32 features. This is a baseline deployment example, not zero-shot AI or a validated Foundry model.</p>
+<p>Calls require your mojojojo API key and use your compute credits. Do not paste API keys into this page; call from your own terminal.</p>
+<h2>Train</h2><pre>POST ./api/model
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{"operation":"train","dataset_revision":"your-immutable-revision",
+ "data_license":"your-data-license",
+ "train":{"rows":[[0,0],[1,1],[9,9],[10,10]],"labels":[0,0,1,1]},
+ "validation":{"rows":[[2,2],[8,8]],"labels":[0,1]}}</pre>
+<p>The response downloads as model.json and records split hashes, validation accuracy and runtime. The sample data is synthetic; it provides no benchmark evidence. Keep your test split hidden.</p>
+<h2>Infer</h2><pre>{"operation":"infer","model":MODEL_JSON_MODEL_FIELD,"rows":[[3,3]]}</pre>
+<p>Only JSON numeric models are accepted. No pickle, executable model code, provider credentials or automatic publication.</p></main></html>

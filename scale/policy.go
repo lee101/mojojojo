@@ -49,6 +49,9 @@ type Snapshot struct {
 	Rented int
 	// SpentTodayUSD is the day's rental bill so far.
 	SpentTodayUSD float64
+
+	// Workload is supplied by trusted queue telemetry, never a client's timing claim.
+	Workload *Workload
 }
 
 // Limits are the hard edges. Nothing in this package will cross one.
@@ -95,10 +98,11 @@ type Action struct {
 
 // Offer is a machine a provider will sell us.
 type Offer struct {
-	Provider string
-	Type     string
-	USDHour  float64
-	Kind     Kind
+	Provider  string
+	Type      string
+	USDHour   float64
+	Kind      Kind
+	MemoryGiB float64
 }
 
 // Decide returns the single next action for this snapshot.
@@ -130,8 +134,12 @@ func Decide(s Snapshot, l Limits, offer Offer, sinceLastChange time.Duration) Ac
 	if s.Rented >= l.MaxWorkers {
 		return Action{0, fmt.Sprintf("already at the cap of %d rented workers", l.MaxWorkers)}
 	}
-	if offer.USDHour <= 0 {
+	if !positiveFinite(offer.USDHour) {
 		return Action{0, "no offer available from any provider"}
+	}
+	if !nonnegativeFinite(s.SpentTodayUSD) || !nonnegativeFinite(s.PaidCreditsPerHour) ||
+		!positiveFinite(l.DailyBudgetUSD) || !positiveFinite(l.MarginMultiple) {
+		return Action{0, "invalid budget or paid-demand telemetry"}
 	}
 	if s.SpentTodayUSD+offer.USDHour > l.DailyBudgetUSD {
 		return Action{0, fmt.Sprintf("today's spend $%.2f + $%.2f/h would pass the $%.2f budget",
@@ -160,7 +168,7 @@ func Decide(s Snapshot, l Limits, offer Offer, sinceLastChange time.Duration) Ac
 func Cheapest(offers []Offer, kind Kind) Offer {
 	var best Offer
 	for _, o := range offers {
-		if o.Kind != kind || o.USDHour <= 0 {
+		if o.Kind != kind || !positiveFinite(o.USDHour) {
 			continue
 		}
 		if best.USDHour == 0 || o.USDHour < best.USDHour {

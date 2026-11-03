@@ -1,0 +1,170 @@
+[
+ {
+  "slug": "life-art",
+  "title": "Life Art",
+  "pitch": "Conway and cellular-automata GIF/PNG poster generator, 1000 generations/s",
+  "repo": "https://github.com/lee101/mojoapp-life-art",
+  "status": "building"
+ },
+ {
+  "slug": "mandelzoom",
+  "title": "Mandel Zoom",
+  "pitch": "Fractal wallpaper and deep-zoom frame renderer, SIMD escape-time, shareable PNGs",
+  "repo": "https://github.com/lee101/mojoapp-mandelzoom",
+  "status": "building"
+ },
+ {
+  "slug": "wordle-solver",
+  "title": "Wordle Solver",
+  "pitch": "Entropy-optimal Wordle solver plus emoji share-grid and daily difficulty rating",
+  "repo": "https://github.com/lee101/mojoapp-wordle-solver",
+  "status": "building"
+ },
+ {
+  "slug": "sudoku-race",
+  "title": "Sudoku Race",
+  "pitch": "Solver that races CPython live and prints the speedup, any puzzle string",
+  "repo": "https://github.com/lee101/mojoapp-sudoku-race",
+  "status": "published"
+ },
+ {
+  "slug": "chat-wrapped",
+  "title": "Chat Wrapped",
+  "pitch": "WhatsApp/Telegram export to Spotify-Wrapped-style stats card",
+  "repo": "https://github.com/lee101/mojoapp-chat-wrapped",
+  "status": "building"
+ },
+ {
+  "slug": "git-wrapped",
+  "title": "Git Wrapped",
+  "pitch": "Year-in-review stats card from any git repo history",
+  "repo": "https://github.com/lee101/mojoapp-git-wrapped",
+  "status": "building"
+ },
+ {
+  "slug": "emoji-mosaic",
+  "title": "Emoji Mosaic",
+  "pitch": "Photo to emoji mosaic image, SIMD color matching",
+  "repo": "https://github.com/lee101/mojoapp-emoji-mosaic",
+  "status": "building"
+ },
+ {
+  "slug": "ascii-cam",
+  "title": "ASCII Cam",
+  "pitch": "Image and video frames to ASCII/ANSI art in the terminal at 60fps",
+  "repo": "https://github.com/lee101/mojoapp-ascii-cam",
+  "status": "building"
+ },
+ {
+  "slug": "pass-meter",
+  "title": "Pass Meter",
+  "pitch": "Offline password strength and breach bloom-filter check, CLI and API",
+  "repo": "https://github.com/lee101/mojoapp-pass-meter",
+  "status": "building"
+ },
+ {
+  "slug": "dupe-hunter",
+  "title": "Dupe Hunter",
+  "pitch": "Duplicate file finder using SIMD hashing, safe report-only mode",
+  "repo": "https://github.com/lee101/mojoapp-dupe-hunter",
+  "status": "building"
+ },
+ {
+  "slug": "csv-crunch",
+  "title": "CSV Crunch",
+  "pitch": "CSV groupby/aggregate 50x faster than pure Python, CLI",
+  "repo": "https://github.com/lee101/mojoapp-csv-crunch",
+  "status": "building"
+ },
+ {
+  "slug": "name-forge",
+  "title": "Name Forge",
+  "pitch": "Markov generator for band, startup and character names, shareable seeds",
+  "repo": "https://github.com/lee101/mojoapp-name-forge",
+  "status": "building"
+ },
+ {
+  "slug": "tsp-art",
+  "title": "TSP Art",
+  "pitch": "Photo to single-line travelling-salesman stipple art",
+  "repo": "https://github.com/lee101/mojoapp-tsp-art",
+  "status": "building"
+ },
+ {
+  "slug": "boids",
+  "title": "Boids",
+  "pitch": "Flocking simulation rendered to GIF, 10k agents",
+  "repo": "https://github.com/lee101/mojoapp-boids",
+  "status": "building"
+ },
+ {
+  "slug": "nbody-gif",
+  "title": "N-Body GIF",
+  "pitch": "Galaxy collision simulator with SIMD gravity, GIF export",
+  "repo": "https://github.com/lee101/mojoapp-nbody-gif",
+  "status": "building"
+ },
+ {
+  "slug": "ulam-poster",
+  "title": "Ulam Poster",
+  "pitch": "Prime spiral posters, print-ready",
+  "repo": "https://github.com/lee101/mojoapp-ulam-poster",
+  "status": "building"
+ },
+ {
+  "slug": "fire-sim",
+  "title": "FIRE Sim",
+  "pitch": "Monte Carlo retirement simulator, 1M scenarios in a second",
+  "repo": "https://github.com/lee101/mojoapp-fire-sim",
+  "status": "building"
+ },
+ {
+  "slug": "ab-bayes",
+  "title": "AB Bayes",
+  "pitch": "Bayesian A/B test calculator with exact Monte Carlo, CLI and web JSON",
+  "repo": "https://github.com/lee101/mojoapp-ab-bayes",
+  "status": "building"
+ },
+ {
+  "slug": "poker-odds",
+  "title": "Poker Odds",
+  "pitch": "Texas Hold'em equity calculator, exhaustive enumeration",
+  "repo": "https://github.com/lee101/mojoapp-poker-odds",
+  "status": "building"
+ },
+ {
+  "slug": "maze-art",
+  "title": "Maze Art",
+  "pitch": "Maze generator and solver posters, solution animation GIF",
+  "repo": "https://github.com/lee101/mojoapp-maze-art",
+  "status": "building"
+ },
+ {
+  "slug": "dla-art",
+  "title": "DLA Art",
+  "pitch": "Diffusion-limited aggregation coral and lightning art",
+  "repo": "https://github.com/lee101/mojoapp-dla-art",
+  "status": "building"
+ },
+ {
+  "slug": "fast-diff",
+  "title": "Fast Diff",
+  "pitch": "Myers diff and fuzzy line matching, drop-in for difflib",
+  "repo": "https://github.com/lee101/mojoapp-fast-diff",
+  "status": "building"
+ },
+ {
+  "slug": "elo-league",
+  "title": "Elo League",
+  "pitch": "Elo/Glicko ratings from match CSV with league table and chart",
+  "repo": "https://github.com/lee101/mojoapp-elo-league",
+  "status": "building"
+ },
+ {
+  "slug": "word-cloud",
+  "title": "Word Cloud",
+  "pitch": "Fast text frequency and word-cloud layout PNG from any text file",
+  "repo": "https://github.com/lee101/mojoapp-word-cloud",
+  "status": "building"
+ }
+]

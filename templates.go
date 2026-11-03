@@ -32,6 +32,19 @@ func loadTemplates(cfg Config) (*templates, error) {
 		"gpuMinutes": func(credits int) string {
 			return formatFloat(float64(credits)*cfg.MsPerCreditGPU/60000, 0)
 		},
+		"usd": func(v float64) string {
+			if v >= 0.01 {
+				return "$" + formatFloat(v, 2)
+			}
+			return "$" + strings.TrimRight(strings.TrimRight(formatFloat(v, 7), "0"), ".")
+		},
+		"usdM": func(v float64) string {
+			return "$" + strings.TrimRight(strings.TrimRight(formatFloat(v*1e6, 3), "0"), ".")
+		},
+		"gib": func(b int64) string {
+			return strings.TrimRight(strings.TrimRight(formatFloat(float64(b)/(1<<30), 2), "0"), ".")
+		},
+		"num": func(v float64) string { return strings.TrimRight(strings.TrimRight(formatFloat(v, 2), "0"), ".") },
 		"pct": func(a, b float64) string {
 			if b <= 0 {
 				return "0"

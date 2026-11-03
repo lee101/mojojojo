@@ -1,0 +1,59 @@
+{{template "head" .}}
+<main class="biz">
+  <p class="eyebrow mono" style="color:var(--acid)">{{.Host}}</p>
+  <h1>{{.B.Title}}</h1>
+  <p class="lede">{{.B.Pitch}}</p>
+  <p>{{if .Live}}<span class="acid">Live</span>{{else}}<span class="dim">Status: {{.B.Status}} — not accepting API traffic yet.</span>{{end}}</p>
+  <h2>Pricing</h2>
+  {{if .Meters}}
+  <table><thead><tr><th>Meter</th><th>Price</th><th>Free each month</th></tr></thead><tbody>
+  {{range .MeterRows}}<tr><td>{{.Label}}</td><td>{{.Price}}</td><td>{{.Free}}</td></tr>{{end}}
+  </tbody></table>
+  {{else}}<p class="dim">No metered resources; included with your account.</p>{{end}}
+  <p class="dim">Billed from your mojojojo credits ($0.001 each). Nothing accrues without an API key, and a request is refused once the free allowance is spent and the balance is empty.</p>
+  <h2>Try it</h2>
+  <div id="biz" data-slug="{{.B.Slug}}" data-pg="{{.PlaygroundJSON}}" data-stripe="{{if .StripePage}}1{{end}}">
+    <div class="panel" id="acct" aria-live="polite"><p class="dim">Loading your account&hellip;</p></div>
+    <div class="panel" id="play" hidden>
+      <h3 style="margin-top:0">Playground</h3>
+      <p class="dim" id="play-note"></p>
+      <label id="play-file-row" hidden class="dim">Input file <input type="file" id="play-file"></label>
+      <textarea id="play-body" rows="9" spellcheck="false" aria-label="Request body"></textarea>
+      <div class="row"><button class="btn" id="play-run" type="button">Run request</button><span class="dim mono" id="play-status"></span></div>
+      <pre id="play-out" hidden></pre>
+    </div>
+  </div>
+  <h2>Call it</h2>
+  {{if .B.Example}}<pre data-lang="bash"><code>{{.B.Example}}</code></pre>{{else}}<pre data-lang="bash"><code>curl https://{{.Host}}/v1/ \
+  -H "Authorization: Bearer $MOJOJOJO_KEY"</code></pre>{{end}}
+  {{if .B.Endpoints}}<h2>Endpoints</h2><ul>{{range .B.Endpoints}}<li><code>{{.}}</code></li>{{end}}</ul>{{end}}
+  <p class="dim">Agents: <a href="/mcp">MCP</a> &middot; <a href="/openapi.json">OpenAPI</a> &middot; <a href="/llms.txt">llms.txt</a></p>
+  {{if .B.Model}}<h2>Model</h2><p>{{.B.Model}}</p>{{end}}
+  {{if .B.Notes}}<h2>Limits and measured results</h2><ul>{{range .B.Notes}}<li>{{.}}</li>{{end}}</ul>{{end}}
+  <div class="row"><a class="btn ghost" href="{{.Account}}/keys">API keys</a>
+  <a class="btn ghost" href="{{.Account}}/businesses">All businesses</a>
+  <a class="btn ghost" href="{{.B.Repo}}">Source</a></div>
+</main>
+<div id="stripe-modal" class="stripe-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="stripe-modal-title">
+  <div class="stripe-backdrop" data-close></div>
+  <div class="stripe-sheet">
+    <div class="stripe-head"><h2 id="stripe-modal-title">Add credits</h2><button class="btn ghost" type="button" data-close aria-label="Close">Close</button></div>
+    <p id="stripe-loading" class="dim">Preparing checkout&hellip;</p>
+    <p id="stripe-error" class="err" hidden></p>
+    <div id="stripe-checkout"></div>
+  </div>
+</div>
+<style>
+#biz textarea,#biz input[type=email],#biz input[type=password]{width:100%;background:var(--code);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font:14px var(--mono)}
+#biz input{margin:4px 0 10px}
+#biz .tabs{display:flex;gap:8px;margin-bottom:10px}#biz .tabs button[aria-selected=true]{background:var(--acid);color:var(--acid-ink)}
+#biz .err,.stripe-sheet .err{color:var(--hot)}#biz pre{max-height:360px;overflow:auto;margin:10px 0 0}
+#biz .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:4px 0 12px}#biz .bar i{display:block;height:100%;background:var(--acid)}
+#biz .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+#biz button{font:inherit;cursor:pointer}#biz .key{word-break:break-all;background:var(--code);padding:8px;border-radius:8px}
+.stripe-modal{position:fixed;inset:0;z-index:1000}.stripe-backdrop{position:absolute;inset:0;background:#09070dcc}
+.stripe-sheet{position:relative;max-width:520px;max-height:92vh;overflow:auto;margin:4vh auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.stripe-head{display:flex;justify-content:space-between;align-items:center}
+</style>
+<script src="/static/business.js" defer></script>
+{{template "foot" .}}

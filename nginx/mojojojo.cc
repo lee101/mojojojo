@@ -30,7 +30,7 @@ server {
 server {
     listen 80;
     listen 443 ssl;
-    server_name mojojojo.cc;
+    server_name mojojojo.cc *.mojojojo.cc;
 
     ssl_certificate /etc/ssl/certs/mojojojo.cc.crt;
     ssl_certificate_key /etc/ssl/private/mojojojo.cc.key;

@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foundry Tabular</title>
+<style>body{max-width:760px;margin:60px auto;padding:24px;background:#12141c;color:#e4e6ee;font:18px system-ui}pre{overflow:auto;background:#222633;padding:20px}</style>
+<main><h1>Tabular classifiers, served without pickle.</h1>
+<p>Five research baselines (adult, credit-g, bank-marketing, phoneme, diabetes) as flat tree and linear arrays. Probabilities match the scikit-learn originals to 1e-7. Not for credit, hiring, insurance or medical decisions.</p>
+<p>Calls require your mojojojo API key and use your compute credits. Call from your own terminal.</p>
+<h2>Predict</h2><pre>POST ./api/model
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{"model":"diabetes","rows":[{"preg":2,"plas":120,"pres":70,"skin":30,"insu":80,"mass":30.5,"pedi":0.4,"age":33}]}</pre>
+<p>List models with {"operation":"models"}. Rows are objects keyed by the dataset's feature names; missing numeric values use the training median.</p></main></html>

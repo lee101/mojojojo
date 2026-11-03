@@ -377,6 +377,15 @@ func migrateDatabase(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS stripe_subscriptions_user_idx
 			ON stripe_subscriptions(user_id, updated_at DESC);
 
+		CREATE TABLE IF NOT EXISTS usage_meters (
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			meter TEXT NOT NULL,
+			month TEXT NOT NULL,
+			qty DOUBLE PRECISION NOT NULL DEFAULT 0,
+			owed_micro DOUBLE PRECISION NOT NULL DEFAULT 0,
+			updated_at TIMESTAMPTZ NOT NULL,
+			PRIMARY KEY (user_id, meter, month)
+		);
 		CREATE TABLE IF NOT EXISTS data_namespaces (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -399,5 +408,8 @@ func migrateDatabase(db *sql.DB) error {
 		);
 		CREATE INDEX IF NOT EXISTS data_records_updated_idx ON data_records(namespace_id, updated_at DESC);
 	`)
-	return err
+	if err != nil {
+		return err
+	}
+	return migrateCreatorEarnings(db)
 }

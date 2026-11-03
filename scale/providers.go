@@ -83,9 +83,9 @@ func (r *RunPod) Name() string { return "runpod" }
 // allocation only increases the realised margin.
 func (r *RunPod) Offers() []Offer {
 	return []Offer{
-		{Provider: "runpod", Type: "NVIDIA RTX A5000", USDHour: 0.27, Kind: GPU},
-		{Provider: "runpod", Type: "NVIDIA GeForce RTX 4090", USDHour: 0.69, Kind: GPU},
-		{Provider: "runpod", Type: "NVIDIA GeForce RTX 5090", USDHour: 0.99, Kind: GPU},
+		{Provider: "runpod", Type: "NVIDIA RTX A5000", USDHour: 0.27, Kind: GPU, MemoryGiB: 24},
+		{Provider: "runpod", Type: "NVIDIA GeForce RTX 4090", USDHour: 0.69, Kind: GPU, MemoryGiB: 24},
+		{Provider: "runpod", Type: "NVIDIA GeForce RTX 5090", USDHour: 0.99, Kind: GPU, MemoryGiB: 32},
 	}
 }
 

@@ -93,6 +93,25 @@ def seeded_shared(tmp_path, monkeypatch, program=PROGRAM):
     return shared, key
 
 
+def test_source_keys_parses_a_submission_once(monkeypatch):
+    original = hostcompile._stripped
+    calls = 0
+
+    def counted(program):
+        nonlocal calls
+        calls += 1
+        return original(program)
+
+    monkeypatch.setattr(hostcompile, "_stripped", counted)
+    keys = hostcompile.source_keys(
+        "def first(x: int) -> int:\n    return x + 1\n\n"
+        "def second(x: int) -> int:\n    return x * 2\n"
+    )
+
+    assert calls == 1
+    assert len(keys) == 3  # whole module plus one compatibility key per function
+
+
 def test_a_run_is_seeded_with_its_own_kernels(tmp_path, monkeypatch):
     shared, key = seeded_shared(tmp_path, monkeypatch)
     private = tmp_path / "run" / "cache"
@@ -255,6 +274,7 @@ def test_pruning_keeps_the_cache_bounded(tmp_path, monkeypatch):
     monkeypatch.setattr(cachestore, "LOCAL", str(shared))
     monkeypatch.setattr(cachestore, "ARCHIVE", str(archive))
     monkeypatch.setattr(cachestore, "MAX_LOCAL_ENTRIES", 3)
+    monkeypatch.setattr(cachestore, "RESERVE_GB", 0)
     monkeypatch.setattr(cachestore, "ARCHIVE_RESERVE_GB", 0)
     for i in range(6):
         (shared / f"{i}.so").write_bytes(b"x")

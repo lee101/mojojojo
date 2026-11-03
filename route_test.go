@@ -19,11 +19,11 @@ func routeRequest(server *Server, method, path string) *fasthttp.RequestCtx {
 func TestCompletePublicPageAndAssetRouteSurface(t *testing.T) {
 	server := authTestServer(t)
 	pages := []string{
-		"/", "/editor", "/playground", "/studio", "/ide", "/apps", "/apps/",
+		"/", "/editor", "/playground", "/studio", "/ide", "/apps", "/apps/", "/mojo-apps", "/mojo-apps/",
 		"/tools", "/tools/", "/pricing", "/docs", "/keys", "/usage", "/credits",
 		"/billing", "/cloud", "/data", "/data/", "/vector", "/vector/", "/examples",
 		"/examples/", "/agent", "/research", "/research/", "/auth/login", "/auth/signup",
-		"/robots.txt", "/sitemap.xml", "/mojojojo.js", "/mojojojo.min.js", "/hl.js",
+		"/businesses", "/database", "/v1/businesses", "/v1/businesses/kv", "/v1/db/pricing", "/robots.txt", "/sitemap.xml", "/mojojojo.js", "/mojojojo.min.js", "/hl.js",
 		"/route.js", "/install.sh", "/install.ps1",
 	}
 	for _, path := range pages {
@@ -93,5 +93,24 @@ func TestCreditPurchaseIntentSendsVisitorThroughSignup(t *testing.T) {
 	}
 	if got, want := string(ctx.Response.Header.Peek("Location")), "/auth/signup?next=%2Fcredits%3Fbuy%3Dcredits"; got != want {
 		t.Fatalf("credit purchase redirect = %q, want %q", got, want)
+	}
+}
+
+func TestMojoAppsPage(t *testing.T) {
+	server := authTestServer(t)
+	ctx := routeRequest(server, http.MethodGet, "/mojo-apps")
+	body := string(ctx.Response.Body())
+	if ctx.Response.StatusCode() != http.StatusOK || strings.Count(body, `class="mojoapp-card"`) != len(loadMojoApps()) ||
+		!strings.Contains(body, "github.com/lee101/mojosub") || !strings.Contains(body, `og:title`) {
+		t.Fatalf("bad /mojo-apps: %d", ctx.Response.StatusCode())
+	}
+	if len(loadMojoApps()) > 0 && !strings.Contains(body, "pixi run") {
+		t.Error("missing quickstart")
+	}
+	sm := &Server{cfg: Config{SiteBaseURL: "https://mojojojo.cc"}}
+	sc := &fasthttp.RequestCtx{}
+	sm.handleSitemap(sc)
+	if !strings.Contains(string(sc.Response.Body()), "/mojo-apps</loc>") {
+		t.Error("sitemap missing /mojo-apps")
 	}
 }

@@ -30,6 +30,7 @@ type Server struct {
 	db                  *sql.DB
 	auth                *authStore
 	bill                *billing
+	meters              *meterBuffer
 	stripe              *stripeBilling
 	runner              *runnerClient
 	vector              *vectorClient
@@ -107,6 +108,7 @@ func main() {
 		log.Printf("uploads: %s/%suploads/ → %s", cfg.R2Bucket, cfg.R2Prefix, cfg.CDNBase)
 	}
 
+	srv.startMetering()
 	srv.startScaling()
 	srv.startVectorScaling()
 	srv.startCapacityBilling()
@@ -132,6 +134,10 @@ func main() {
 }
 
 func (s *Server) route(ctx *fasthttp.RequestCtx) {
+	if slug := s.businessHost(ctx); slug != "" {
+		s.handleBusinessHost(ctx, slug)
+		return
+	}
 	path := string(ctx.Path())
 	method := string(ctx.Method())
 	if s.cfg.Debug {
@@ -176,6 +182,8 @@ func (s *Server) route(ctx *fasthttp.RequestCtx) {
 		s.handleStripeSession(ctx)
 	case path == "/v1/billing/webhook" && method == "POST":
 		s.handleStripeWebhook(ctx)
+	case path == "/v1/earnings" || path == "/v1/earnings/convert":
+		s.handleCreatorEarnings(ctx)
 	case path == "/v1/keys" && method == "GET":
 		s.handleKeysList(ctx)
 	case path == "/v1/keys" && method == "POST":
@@ -301,6 +309,20 @@ func (s *Server) route(ctx *fasthttp.RequestCtx) {
 		s.handleStudio(ctx)
 	case path == "/apps" || path == "/apps/":
 		s.handleShowcasePage(ctx, "app")
+	case path == "/businesses" || path == "/businesses/":
+		s.handleBusinessesPage(ctx)
+	case path == "/database" || path == "/database/":
+		s.handleDatabasePage(ctx)
+	case path == "/v1/businesses":
+		s.handleBusinessesAPI(ctx)
+	case strings.HasPrefix(path, "/v1/businesses/"):
+		s.handleBusinessAPI(ctx, strings.TrimPrefix(path, "/v1/businesses/"))
+	case path == "/v1/db/pricing":
+		s.handleDBPricing(ctx)
+	case path == "/v1/db/usage":
+		s.handleDBUsage(ctx)
+	case path == "/mojo-apps" || path == "/mojo-apps/":
+		s.handleMojoApps(ctx)
 	case path == "/tools" || path == "/tools/":
 		s.handleShowcasePage(ctx, "tool")
 	case path == "/pricing":
@@ -481,7 +503,7 @@ func (s *Server) handleSitemap(ctx *fasthttp.RequestCtx) {
 	// discover the useful thing a visitor can open directly.
 	for _, page := range []struct{ path, priority string }{
 		{"/", "1.0"}, {"/studio", "0.9"}, {"/cloud", "0.9"}, {"/agent", "0.9"},
-		{"/apps", "0.9"}, {"/tools", "0.9"}, {"/examples", "0.9"},
+		{"/apps", "0.9"}, {"/mojo-apps", "0.8"}, {"/businesses", "0.9"}, {"/database", "0.9"}, {"/tools", "0.9"}, {"/examples", "0.9"},
 		{"/data", "0.8"}, {"/vector", "0.8"}, {"/editor", "0.8"},
 		{"/pricing", "0.8"}, {"/docs", "0.8"},
 	} {

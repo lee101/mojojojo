@@ -25,6 +25,8 @@ product; this file is the map for working in the repo.
 | `runner/mojolibs.py` | the ../mojo-* ports: registry, build, opt-in aliasing |
 | `runner/autoinstall.py` | imports → distributions |
 | `uploads.go` | POST /v1/uploads, prefix-locked |
+| `businesses.go` `businesses.json` | mojo business catalog, subdomain routing, metered proxy |
+| `meters.go` `dbaas.go` | usage meters/pricing, Database API tiers and usage |
 | `runner/bootstrap.py` `runner/accel.py` | in-child entrypoint and the Mojo policy |
 | `scale/` | autoscaling policy, RunPod/Hetzner providers, worker bootstrap |
 | `sdk/python/` | the `mojojojo` PyPI package (`run`, `@remote`, CLI) |
@@ -32,6 +34,7 @@ product; this file is the map for working in the repo.
 | `docs/notebooks.md` | hosted Notebook boundary, plugin model, and reviewed AI workflow |
 | `bench/corpus.py` `bench/fallback_study.py` | labelled corpus + the study that tunes the accel filter |
 | `scripts/logo/make_logo.py` | mascot pipeline (OmniServe + BiRefNet + WebP) |
+| `business_stream.go` | own-upstream business proxy (how): SSE streaming, done-event token metering |
 | `deploy.sh` `systemd/` `nginx/` | deployment |
 
 ## Commands

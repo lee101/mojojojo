@@ -611,7 +611,7 @@ func (s *Server) handleShowcase(ctx *fasthttp.RequestCtx) {
 	if category != "app" && category != "tool" {
 		category = ""
 	}
-	query := `SELECT p.id,p.name,p.slug,p.description,p.category,p.tags,p.featured,p.updated_at,u.handle,u.email,d.public_url
+	query := `SELECT p.id,p.name,p.slug,p.description,p.category,p.tags,p.featured,p.updated_at,u.handle,u.email,d.public_url,d.manifest
 		FROM projects p JOIN users u ON u.id=p.user_id JOIN deployments d ON d.id=p.active_deployment_id
 		WHERE p.showcase_status='approved' AND p.visibility='public'`
 	args := []any{}
@@ -628,16 +628,25 @@ func (s *Server) handleShowcase(ctx *fasthttp.RequestCtx) {
 	defer rows.Close()
 	items := make([]map[string]any, 0)
 	for rows.Next() {
-		var id, name, slug, desc, cat, tagsJSON, handle, email, publicURL string
+		var id, name, slug, desc, cat, tagsJSON, handle, email, publicURL, manifestJSON string
 		var featured bool
 		var updated time.Time
-		if rows.Scan(&id, &name, &slug, &desc, &cat, &tagsJSON, &featured, &updated, &handle, &email, &publicURL) == nil {
+		if rows.Scan(&id, &name, &slug, &desc, &cat, &tagsJSON, &featured, &updated, &handle, &email, &publicURL, &manifestJSON) == nil {
 			var tags []string
 			_ = json.Unmarshal([]byte(tagsJSON), &tags)
 			if handle == "" {
 				handle = strings.Split(email, "@")[0]
 			}
-			items = append(items, map[string]any{"id": id, "name": name, "slug": slug, "description": desc, "category": cat, "tags": tags, "featured": featured, "author": handle, "url": publicURL, "updated_at": updated})
+			item := map[string]any{"id": id, "name": name, "slug": slug, "description": desc, "category": cat, "tags": tags, "featured": featured, "author": handle, "url": publicURL, "updated_at": updated}
+			if price := minPriceCredits(manifestJSON); price > 0 {
+				// The badge shows that an app charges and that real callers pay it,
+				// never what the owner has earned.
+				item["price_credits"] = price
+				var payers int
+				_ = s.db.QueryRow(`SELECT COUNT(DISTINCT payer_id) FROM creator_earnings WHERE project_id=$1 AND status='active' AND created_at > now() - interval '30 days'`, id).Scan(&payers)
+				item["paying_callers_30d"] = payers
+			}
+			items = append(items, item)
 		}
 	}
 	sendJSON(ctx, map[string]any{"ok": true, "items": items})
@@ -857,7 +866,7 @@ type hostedResponse struct {
 
 func (s *Server) handleHostedFunction(ctx *fasthttp.RequestCtx, projectID, name string, draft bool) {
 	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
-	ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type")
+	ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Api-Key")
 	ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	if ctx.IsOptions() {
 		ctx.SetStatusCode(204)
@@ -885,28 +894,44 @@ func (s *Server) handleHostedFunction(ctx *fasthttp.RequestCtx, projectID, name 
 		sendError(ctx, 404, "function not found")
 		return
 	}
+	if fn.Billing == "caller" && !draft && !ctx.IsPost() {
+		sendError(ctx, 405, "caller-paid functions require POST")
+		return
+	}
+	payer := s.hostedFunctionPayer(fn, draft, ownerID, bearerToken(ctx))
+	if payer == nil {
+		if fn.Billing == "caller" && !draft {
+			sendError(ctx, 401, "a valid mojojojo API key is required for caller-paid compute")
+		} else {
+			sendError(ctx, 404, "app owner not found")
+		}
+		return
+	}
 	if !draft {
 		if err := s.reserveFunctionCall(projectID); err != nil {
 			sendError(ctx, 429, err.Error())
 			return
 		}
 	}
-	owner := s.auth.userByID(ownerID)
-	if owner == nil {
-		sendError(ctx, 404, "app owner not found")
+	s.bill.grantWelcome(payer)
+	if !payer.Funded() {
+		sendError(ctx, 402, "the compute payer has no paid credits")
 		return
 	}
-	s.bill.grantWelcome(owner)
-	if !owner.Funded() {
-		sendError(ctx, 402, "this app's function budget is empty")
-		return
+	// A priced function charges its creator fee up front, so a caller cannot
+	// run it for free by running out of credits halfway.
+	if !draft && fn.PriceCredits > 0 {
+		if refusal := s.chargeCreatorFee(payer, ownerID, projectID, name, fn.PriceCredits); refusal != nil {
+			s.creatorFeeRefused(ctx, refusal, fn.PriceCredits)
+			return
+		}
 	}
 	timeout := fn.TimeoutMs
 	if timeout <= 0 || timeout > publicFunctionTimeout {
 		timeout = publicFunctionTimeout
 	}
 	stdin, _ := json.Marshal(requestEnvelope(ctx))
-	req := RunRequest{Code: source, Stdin: string(stdin), Language: fn.Language, Packages: fn.Packages, TimeoutMs: timeout, Source: "app:" + projectID}
+	req := RunRequest{Code: source, Stdin: string(stdin), Language: fn.Language, Packages: fn.Packages, TimeoutMs: timeout, GPU: fn.GPU, Source: "app:" + projectID}
 	if fn.Language == "python" {
 		req.Code = pythonFunctionCode(source)
 	}
@@ -916,7 +941,7 @@ func (s *Server) handleHostedFunction(ctx *fasthttp.RequestCtx, projectID, name 
 		return
 	}
 	native := result.Accel.NativeCalls > 0
-	charge, chargeErr := s.bill.charge(owner, result.BillableMs, false, native, req.Source)
+	charge, chargeErr := s.bill.charge(payer, result.BillableMs, req.GPU, native, req.Source)
 	if chargeErr != nil {
 		log.Printf("app function charge failed project=%s: %v", projectID, chargeErr)
 	} else {

@@ -230,6 +230,25 @@ curl -H 'Content-Type: application/json' -d '{"name":"Ada"}' \
 <code class="inl">query</code>, selected request headers, and a parsed JSON or text body. The app owner
 pays function execution from the same credit balance; static delivery has no execution charge.</p>
 
+<h2 id="earn">Charge for your app and earn</h2>
+<p>A function with <code>billing: caller</code> is paid for by whoever calls it, with their API key.
+Add <code>price_credits</code> and every call also pays you: the caller is charged that many credits
+on top of the compute, and you earn <b>80%</b> of the credits they paid for.</p>
+<pre data-lang="json"><code>{"runtime":"app","functions":{"render":{"language":"python","entrypoint":"functions/render.py",
+  "billing":"caller","price_credits":25}}}</code></pre>
+<p>The rules are fixed and published, so you can predict what a call earns:</p>
+<ul>
+<li>You earn on credits callers <b>paid for</b> (purchased and plan credits). Free signup credits never earn.</li>
+<li>Your own calls earn nothing. Earnings vest for 7 days (refunds), then convert 1:1 into your credits.</li>
+<li>A caller short on credits gets <code>402 insufficient_credits</code> with <code>topup_url</code>; nothing runs, nothing is charged.</li>
+<li>The fee is taken before the function runs, all or nothing.</li>
+</ul>
+<pre data-lang="bash"><code>curl https://mojojojo.cc/v1/earnings -H "Authorization: Bearer $MOJOJOJO_KEY"
+curl -X POST https://mojojojo.cc/v1/earnings/convert -H "Authorization: Bearer $MOJOJOJO_KEY" -d '{"credits":500}'</code></pre>
+<p>Prefer a card checkout, subscriptions or cash-outs to a bank? <a href="https://app.nz/docs">app.nz Pay</a> uses the same
+credits-and-share model across platforms (<code>llms-full.txt</code> section "Earn from credits"): users sign in with app.nz,
+buy credits on a hosted page when short, and are sent back to your app. Apps using it are badged in both app stores.</p>
+
 <h2 id="data-api">Managed data API</h2>
 <p>A database is a tenant-scoped JSONB namespace in mojojojo Postgres. Linking a vector project makes
 <code class="inl">search_text</code> a durable vector document while the JSON record stays authoritative.</p>

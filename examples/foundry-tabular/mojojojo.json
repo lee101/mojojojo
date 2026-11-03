@@ -1,0 +1,13 @@
+{
+  "name": "Foundry Tabular",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "model": {
+      "language": "python",
+      "entrypoint": "functions/model.py",
+      "billing": "caller",
+      "timeout_ms": 10000
+    }
+  }
+}

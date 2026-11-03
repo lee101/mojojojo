@@ -1,0 +1,37 @@
+{{template "head" .}}
+<main>
+  <h1>Database API</h1>
+  <p class="lede">A tenant-scoped JSON database over HTTP. Free to start, then priced per
+  request and per GB-hour with a monthly free allowance on every meter. No instance to size
+  and no idle fee on the shared tiers.</p>
+  <div class="row"><a class="btn" href="/auth/signup?next=/data">Create account — $1 free</a>
+  <a class="btn ghost" href="/v1/db/pricing">Pricing JSON</a><a class="btn ghost" href="/data">Open console</a></div>
+
+  <h2>Shared tiers</h2>
+  <div class="grid2">
+    <div class="panel"><h3 class="acid">Free</h3>
+      <p>{{.Free.Databases}} databases, {{.Free.RecordsPerDatabase}} records and {{gib .Free.BytesPerDatabase}} GiB each. Every account, no card.</p></div>
+    <div class="panel"><h3 class="acid">Usage</h3>
+      <p>Unlocked by buying credits: {{.Paid.Databases}} databases, {{.Paid.RecordsPerDatabase}} records and {{gib .Paid.BytesPerDatabase}} GiB each. Pay only past the free allowances below.</p></div>
+  </div>
+
+  <h2>Usage pricing</h2>
+  <table><thead><tr><th>Meter</th><th>Price</th><th>Free each month</th></tr></thead><tbody>
+  {{range .Meters}}<tr><td>{{.Label}}</td><td>{{usd .USD}} / {{.Unit}}{{if eq .Unit "request"}} ({{usdM .USD}} per million){{end}}</td><td>{{num .Free}} {{.Unit}}</td></tr>{{end}}
+  </tbody></table>
+  <p class="dim">Billed from mojojojo credits ($0.001 each); fractions accrue and are never rounded up. Cold data moves to R2-backed storage at the object price.</p>
+
+  <h2>Dedicated <span class="dim" style="font-size:14px">preview</span></h2>
+  <p class="dim">A private instance on rented Hetzner NVMe, continuously backed up to R2. Provisioned by hand during preview — <a href="mailto:lee.penkman@netwrck.com?subject=Dedicated%20database">ask for one</a>.</p>
+  <table><thead><tr><th>Plan</th><th>Month</th><th>vCPU</th><th>RAM</th><th>NVMe</th><th>Backups</th></tr></thead><tbody>
+  {{range .Dedicated}}<tr><td>{{.Name}}</td><td>${{.USDMonth}}</td><td>{{.VCPU}}</td><td>{{.RAMGB}} GB</td><td>{{.DiskGB}} GB</td><td>{{.Backup}}</td></tr>{{end}}
+  </tbody></table>
+
+  <h2>API</h2>
+<pre data-lang="bash"><code>curl -X POST https://mojojojo.cc/v1/data/namespaces \
+  -H "Authorization: Bearer $MOJOJOJO_KEY" -d '{"name":"app"}'
+curl -X PUT https://mojojojo.cc/v1/data/namespaces/$DB/records \
+  -H "Authorization: Bearer $MOJOJOJO_KEY" -d '{"key":"user:1","value":{"plan":"pro"}}'
+curl https://mojojojo.cc/v1/db/usage -H "Authorization: Bearer $MOJOJOJO_KEY"</code></pre>
+</main>
+{{template "foot" .}}

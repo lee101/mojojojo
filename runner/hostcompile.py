@@ -186,17 +186,22 @@ def source_keys(program: str) -> list[str]:
     import ast
 
     try:
-        tree = ast.parse(program)
+        tree = _stripped(program)
     except SyntaxError:
         return []
     cache = _mojosub().cache
-    keys = [cache.source_key(ast.unparse(_stripped(program)))]
+    keys = [cache.source_key(ast.unparse(tree))]
     for name in [n.name for n in tree.body if isinstance(n, ast.FunctionDef)]:
-        module = _stripped(program)
-        module.body = [
-            node for node in module.body
-            if not isinstance(node, ast.FunctionDef) or node.name == name
-        ]
+        # Reuse the parsed tree. This runs while seeding every request, and the
+        # previous implementation reparsed the whole submission once per
+        # function (quadratic work for generated or notebook-style programs).
+        module = ast.Module(
+            body=[
+                node for node in tree.body
+                if not isinstance(node, ast.FunctionDef) or node.name == name
+            ],
+            type_ignores=tree.type_ignores,
+        )
         key = cache.source_key(ast.unparse(module))
         if key not in keys:
             keys.append(key)
