@@ -10,7 +10,7 @@
   {{range .MeterRows}}<tr><td>{{.Label}}</td><td>{{.Price}}</td><td>{{.Free}}</td></tr>{{end}}
   </tbody></table>
   {{else}}<p class="dim">No metered resources; included with your account.</p>{{end}}
-  <p class="dim">Billed from your mojojojo credits ($0.001 each). Nothing accrues without an API key, and a request is refused once the free allowance is spent and the balance is empty.</p>
+  <p class="dim">Billed from your mojojojo credits ($0.001 each). Requests need an API key and an account with paid credits.</p>
   <h2>Try it</h2>
   <div id="biz" data-slug="{{.B.Slug}}" data-pg="{{.PlaygroundJSON}}" data-stripe="{{if .StripePage}}1{{end}}">
     <div class="panel" id="acct" aria-live="polite"><p class="dim">Loading your account&hellip;</p></div>

@@ -136,6 +136,12 @@ func TestAccountSignupLoginKeyAndSession(t *testing.T) {
 		t.Fatalf("key: %d %s", k.status, k.raw)
 	}
 
+	if unpaid := acctCall(t, s, "embed", "POST", "/v1/embeddings", `{"input":"x"}`, li.cookie, nil); unpaid.status != 402 {
+		t.Fatalf("metered call without paid credits: %d %s", unpaid.status, unpaid.raw)
+	}
+	if _, err := s.db.Exec(`UPDATE users SET paid_credits=100 WHERE id=$1`, userIDOf(t, s, "inline@example.com")); err != nil {
+		t.Fatal(err)
+	}
 	// The playground path: the cookie alone pays for a metered /v1 call.
 	call := acctCall(t, s, "embed", "POST", "/v1/embeddings", `{"input":"x"}`, li.cookie, nil)
 	if call.status != 200 {

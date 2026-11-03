@@ -207,7 +207,7 @@ func (s *Server) mcpCall(ctx *fasthttp.RequestCtx, b business, t bizTool, args m
 		return toolText(true, "API key required: create one at "+s.cfg.SiteBaseURL+"/keys and send it as Authorization: Bearer")
 	}
 	if m := modelMeter(b.Parts); m != "" && s.meterBlocked(u, m) {
-		return toolText(true, "free allowance used - add credits at "+s.cfg.TopUpURL)
+		return toolText(true, paymentRequired+s.cfg.TopUpURL)
 	}
 	path := t.Path
 	body := map[string]any{}

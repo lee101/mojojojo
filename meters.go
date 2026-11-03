@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -176,14 +177,15 @@ func (s *Server) settleMeter(userID string, def meterDef, month string, qty floa
 	return nil
 }
 
-// meterBlocked reports whether a user with no credits has used up the free
-// allowance, so a request must be refused rather than served on credit.
+// meterBlocked reports whether a request must be refused. Metered compute
+// needs an account that has put money in; database reads and writes keep a
+// monthly free allowance.
 func (s *Server) meterBlocked(u *User, meter string) bool {
-	if u == nil {
-		return true
-	}
-	if u.Credits() > 0 {
+	if u.Funded() {
 		return false
+	}
+	if u == nil || !strings.HasPrefix(meter, "db.") {
+		return true
 	}
 	def := meterDefs[meter]
 	var qty float64

@@ -145,7 +145,7 @@
     pgReady = true;
     const body = $('#play-body'), out = $('#play-out'), status = $('#play-status');
     body.value = JSON.stringify(pg.body, null, 2);
-    $('#play-note').textContent = 'POST ' + pg.path + ' - uses your free allowance and credits.';
+    $('#play-note').textContent = 'POST ' + pg.path + ' - uses your credits.';
     if (pg.file) {
       $('#play-file-row').hidden = false;
       $('#play-file').accept = pg.file.accept;

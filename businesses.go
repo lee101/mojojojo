@@ -205,7 +205,7 @@ func (s *Server) handleBusinessHost(ctx *fasthttp.RequestCtx, slug string) {
 	}
 	meter := requestMeter(b.Parts, string(ctx.Method()), path)
 	if meter != "" && (s.meterBlocked(u, meter) || (meter == "how.ask" && s.meterBlocked(u, "how.tokens"))) {
-		sendError(ctx, 402, "free allowance used — add credits at "+s.cfg.TopUpURL)
+		sendError(ctx, 402, paymentRequired+s.cfg.TopUpURL)
 		return
 	}
 	if up := s.upstreamFor(b); up.own {
