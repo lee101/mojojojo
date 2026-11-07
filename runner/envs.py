@@ -152,8 +152,23 @@ def ensure(packages) -> tuple[str, dict]:
         if os.path.exists(path):
             shutil.rmtree(path, ignore_errors=True)
         os.makedirs(ENV_ROOT, exist_ok=True)
-        env = dict(os.environ, UV_CACHE_DIR=UV_CACHE, UV_LINK_MODE="hardlink",
-                   UV_PYTHON_INSTALL_DIR=UV_PYTHON_DIR)
+        # Scrubbed: the runner's own environment holds credentials, and a
+        # package install must never see them.
+        scratch = os.path.join(ENV_ROOT, ".home")
+        os.makedirs(scratch, exist_ok=True)
+        env = {
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "HOME": scratch,
+            "TMPDIR": scratch,
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "UV_CACHE_DIR": UV_CACHE,
+            "UV_LINK_MODE": "hardlink",
+            "UV_PYTHON_INSTALL_DIR": UV_PYTHON_DIR,
+            "UV_NO_CONFIG": "1",
+        }
+        for var in ("UV_PYTHON_PREFERENCE", "UV_OFFLINE", "SSL_CERT_FILE", "SSL_CERT_DIR"):
+            if os.environ.get(var):
+                env[var] = os.environ[var]
         _run([UV, "venv", "--python", base_interpreter(), path], env)
         if not _visible(python):
             # Refuse to hand back an environment the sandbox cannot execute.
@@ -163,7 +178,8 @@ def ensure(packages) -> tuple[str, dict]:
                 f"interpreter {os.path.realpath(python)} is outside the paths "
                 "the sandbox can see — set MOJOJOJO_PYTHON_BIN")
         if specs:
-            _run([UV, "pip", "install", "--python", python, "--quiet", *specs], env)
+            _run([UV, "pip", "install", "--python", python, "--quiet",
+                  "--only-binary", ":all:", *specs], env)
         with open(ready, "w", encoding="utf-8") as fh:
             fh.write("\n".join(specs))
         build_ms = (time.perf_counter() - started) * 1000.0
