@@ -10,6 +10,9 @@ Python function that upgrades to an adjacent Mojo port when the worker is warm.
 | [Cron Lens](cron-lens) | Twelve real cron runs across time zones via `mojo-croniter` | [Deploy](https://mojojojo.cc/studio?example=cron-lens&kind=tool) |
 | [Phone Passport](phone-passport) | E.164 cleanup and validation via `mojo-phonenumbers` | [Deploy](https://mojojojo.cc/studio?example=phone-passport&kind=tool) |
 | [Photo Twin](photo-twin) | Perceptual duplicate detection via `mojo-imagehash` | [Deploy](https://mojojojo.cc/studio?example=photo-twin&kind=tool) |
+| [Trendfolio](trendfolio) | Macrotrends-style price stats; kernel compiles via mojosub | [Deploy](https://mojojojo.cc/studio?example=trendfolio&kind=tool) |
+| [Worldline](worldline) | OWID-style country explorer; growth/CAGR kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=worldline&kind=tool) |
+| [Stat Surge](stat-surge) | CSV stats + SVG share card; histogram/percentile kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=stat-surge&kind=tool) |
 | [JSON → CSV](json-to-csv) | Minimal Python serverless function | [Guide](json-to-csv/README.md) |
 | [PNG → WebP](png-to-webp) | Private browser-first conversion | [Guide](png-to-webp/README.md) |
 | [Mojo serverless](mojo-serverless) | Smallest compiled backend | [Guide](mojo-serverless/README.md) |

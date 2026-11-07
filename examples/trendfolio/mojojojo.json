@@ -1,0 +1,12 @@
+{
+  "name": "Trendfolio",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "stats": {
+      "language": "python",
+      "entrypoint": "functions/stats.py",
+      "timeout_ms": 5000
+    }
+  }
+}

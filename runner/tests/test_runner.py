@@ -395,10 +395,11 @@ def test_a_numpy_scalar_call_is_eligible():
 @pytest.mark.parametrize("src, why", [
     ("import math\n"
      "def g(n: int) -> float:\n"
-     "    t = math.pi\n"
+     "    t = math.inf\n"
      "    for i in range(n):\n"
      "        t += i\n"
-     "    return t\n", "an attribute that is not a call has no emitted form"),
+     "    return t\n", "an attribute that is not a call and not a folded "
+                      "constant has no emitted form"),
     ("import math\n"
      "def g(n: int) -> float:\n"
      "    t = 0.0\n"

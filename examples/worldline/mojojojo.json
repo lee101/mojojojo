@@ -1,0 +1,12 @@
+{
+  "name": "Worldline",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "explore": {
+      "language": "python",
+      "entrypoint": "functions/explore.py",
+      "timeout_ms": 5000
+    }
+  }
+}

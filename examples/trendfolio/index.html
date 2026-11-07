@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trendfolio — Macrotrends-style price stats, compiled by Mojo</title>
+<style>
+body{font:16px/1.5 system-ui;max-width:900px;margin:40px auto;padding:20px;background:#0e0d12;color:#eceaf2}
+a{color:#b7ff5e}.dim{color:#9a95a8}.mono{font-family:ui-monospace,monospace}
+.panel{background:#17161f;border:1px solid #2a2836;border-radius:14px;padding:16px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:#1e1d29;border-radius:10px;padding:12px}.kpi b{font-size:22px;display:block}
+canvas{width:100%;height:280px;background:#121118;border-radius:10px}
+textarea{width:100%;min-height:90px;background:#121118;color:#eceaf2;border:1px solid #2a2836;border-radius:10px;padding:10px}
+button{background:#b7ff5e;color:#0e0d12;border:0;border-radius:9px;padding:10px 18px;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;color:#b7ff5e;border:1px solid #3a3850}
+@media(max-width:700px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+<h1>Trendfolio</h1>
+<p class="dim">Macrotrends-style price chart + stats. Paste a price series
+(one number per line or comma-separated) and the <b>Python kernel</b> —
+rolling MA, max drawdown, CAGR — is transpiled to <b>native Mojo</b> by
+mojosub and verified against CPython on first call.</p>
+<div class="panel">
+<label>Price series <span class="dim">(demo: 5y of a synthetic index, ~1260 points)</span><br>
+<textarea id="input" spellcheck="false"></textarea></label>
+<div style="display:flex;gap:10px;margin-top:10px">
+<button id="run">Compute stats</button>
+<button id="demo" class="ghost">Reload demo series</button>
+<button id="share" class="ghost">Copy share link</button>
+</div>
+</div>
+<div id="out"></div>
+<canvas id="chart" width="860" height="280"></canvas>
+<div class="panel"><h3 style="margin-top:0">The kernel (self-contained)</h3>
+<pre class="mono" style="font-size:12px;overflow:auto">def rolling_mean_last(prices: list[float], window: int) -> float:
+    total = 0.0
+    start = max(0, len(prices) - window)
+    for i in range(start, len(prices)):
+        total += prices[i]
+    return total / (len(prices) - start)
+
+def max_drawdown(prices: list[float]) -> float:
+    peak = prices[0]; worst = 0.0
+    for i in range(len(prices)):
+        if prices[i] > peak: peak = prices[i]
+        if peak > 0.0: worst = max(worst, (peak - prices[i]) / peak)
+    return worst</pre>
+<p class="dim">No imports needed beyond <code>math</code>, no numpy, no
+database. The accel filter needs a loop + typed annotations; that is the
+whole contract.</p></div>
+<script>
+// Deterministic demo series (LCG + trend) so the page works offline.
+function demoSeries(){
+  let x=42, out=[], p=100;
+  for(let i=0;i<1260;i++){
+    x=(1103515245*x+12345)%2147483648; const r=x/2147483648-0.48;
+    p=Math.max(5, p + p*0.0006 + r*p*0.012);
+    out.push(+p.toFixed(2));
+  }
+  return out;
+}
+const input=document.querySelector('#input'),
+      out=document.querySelector('#out'),
+      chart=document.querySelector('#chart');
+function parsePrices(t){
+  return t.split(/[,\s]+/).map(Number).filter(v=>Number.isFinite(v)&&v>=0);
+}
+function loadDemo(){ input.value=demoSeries().join(', '); }
+function draw(prices, ma20, ma50){
+  const ctx=chart.getContext('2d'), W=chart.width, H=chart.height;
+  ctx.clearRect(0,0,W,H);
+  const lo=Math.min(...prices), hi=Math.max(...prices),
+        sx=i=>8+i*(W-16)/(prices.length-1),
+        sy=v=>H-22-(v-lo)/(hi-lo||1)*(H-44);
+  ctx.strokeStyle='#3a3850'; ctx.beginPath(); ctx.moveTo(8,H-22); ctx.lineTo(W-8,H-22); ctx.stroke();
+  const line=(data,color)=>{ ctx.strokeStyle=color; ctx.lineWidth=1.6; ctx.beginPath();
+    data.forEach((v,i)=> i?ctx.lineTo(sx(i),sy(v)):ctx.moveTo(sx(i),sy(v))); ctx.stroke(); };
+  line(prices,'#eceaf2'); if(ma20)line(ma20,'#b7ff5e'); if(ma50)line(ma50,'#ff9e5e');
+  ctx.fillStyle='#9a95a8'; ctx.font='12px ui-monospace,monospace';
+  ctx.fillText(`low ${lo}  high ${hi}`, 12, 16);
+  ctx.fillStyle='#b7ff5e'; ctx.fillText('MA20', 12, 30);
+  ctx.fillStyle='#ff9e5e'; ctx.fillText('MA50', 60, 30);
+}
+document.querySelector('#run').onclick=async()=>{
+  const prices=parsePrices(input.value);
+  if(prices.length<2){ out.textContent='Need at least 2 prices.'; return; }
+  out.textContent='Computing…';
+  const res=await fetch('./api/stats',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prices})});
+  const data=await res.json();
+  if(!res.ok){ out.textContent=data.error||JSON.stringify(data); return; }
+  const s=data.summary;
+  out.innerHTML=`<div class="grid">`+
+    [['Total return', s.total_return_pct+'%'],['CAGR', s.cagr_pct+'%'],
+     ['Max drawdown', s.max_drawdown_pct+'%'],['Last', s.last],
+     ['MA20', s.ma20_last],['MA50', s.ma50_last]]
+    .map(([k,v])=>`<div class="kpi"><span class="dim">${k}</span><b>${v}</b></div>`).join('')+
+    `</div><p class="dim">${s.points} points · ${data.note}</p>`;
+  draw(prices, data.ma20, data.ma50);
+  // Encode the series in the URL so the chart is the share card.
+  const enc=btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(prices.slice(0,400)))));
+  history.replaceState(null,'','#s='+encodeURIComponent(enc));
+};
+document.querySelector('#demo').onclick=loadDemo;
+document.querySelector('#share').onclick=()=>navigator.clipboard?.writeText(location.href)
+  .then(()=>{document.querySelector('#share').textContent='Copied!';});
+loadDemo();
+// Restore a shared series from the hash, if present.
+try{
+  const h=new URLSearchParams(location.hash.slice(1)).get('s');
+  if(h){
+    const bytes=Uint8Array.from(atob(h),c=>c.charCodeAt(0));
+    input.value=JSON.parse(new TextDecoder().decode(bytes)).join(', ');
+  }
+}catch(e){}
+</script>

@@ -211,6 +211,14 @@ _ALLOWED_CALLS = frozenset({
 # behind a dot does.
 _MODULE_ROOTS = frozenset({"math", "np", "numpy"})
 
+# The numeric constants the transpiler folds as literals (`mojosub`
+# `MATH_CONSTS`). The filter must know them too, or every kernel that reads
+# `math.pi` is rejected for `attribute .pi` despite the transpiler emitting
+# it — the same failure mode as `math.sqrt` above. This set is deliberately
+# the exact keys of the transpiler's table; adding a name here without
+# adding it there would only cost a wasted transpile, never a wrong answer.
+_MATH_CONSTS = frozenset({"pi", "e", "tau"})
+
 
 def _bound_names(fn: ast.FunctionDef) -> set[str]:
     """Every name this function binds: parameters, assignments, loop targets.
@@ -279,7 +287,7 @@ def eligible(fn: ast.FunctionDef, local_names, _seen: frozenset[str] = frozenset
 
 
 def _module_call_nodes(fn: ast.FunctionDef) -> set[int]:
-    """The nodes making up a `math.sqrt(x)`, and nothing else.
+    """The nodes making up a `math.sqrt(x)` or `math.pi`, and nothing else.
 
     `math.sqrt` and `np.exp` are the most ordinary thing in a numeric kernel and
     the transpiler emits them, but an `Attribute` is not in the allowed node
@@ -288,11 +296,23 @@ def _module_call_nodes(fn: ast.FunctionDef) -> set[int]:
     accept it. Measured on this box the same loop is 67x faster native, and no
     function using `math.` had ever been compiled.
 
+    `math.pi` / `math.e` / `math.tau` are the same story one step earlier:
+    the transpiler folds them as literals, but the filter had no exception
+    for a bare attribute read, so every kernel mentioning pi was rejected
+    for `attribute .pi`. Financial and statistical kernels hit this
+    constantly (log-returns, normal PDFs, moving-average spans).
+
     Both the attribute and its root are collected, so a `math` used as anything
     other than the root of an allowed call still fails the ordinary checks.
     """
     ok: set[int] = set()
     for node in ast.walk(fn):
+        # Bare constant read: `math.pi` (not under a Call).
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) \
+                and node.value.id in _MODULE_ROOTS and node.attr in _MATH_CONSTS:
+            ok.add(id(node))
+            ok.add(id(node.value))
+            continue
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
             continue
         func = node.func

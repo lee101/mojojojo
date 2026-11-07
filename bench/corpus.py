@@ -472,6 +472,77 @@ def constant_work() -> int:
         lambda: (), "either", "no arguments, so no signature to specialise",
         tags=("no-args",),
     ),
+    Case(
+        "math_pi_kernel", "normal_pdf_sum",
+        '''
+import math
+
+def normal_pdf_sum(n: int) -> float:
+    total = 0.0
+    for i in range(n):
+        x = (i - n / 2.0) / (n / 10.0)
+        total += math.exp(-0.5 * x * x) / (2.0 * math.pi) ** 0.5
+    return total
+''',
+        lambda: (200_000,), "native",
+        "math.pi as a bare attribute read — the transpiler folds it as a "
+        "literal, but the filter had no exception and rejected every "
+        "kernel mentioning pi for `attribute .pi`. Financial/statistical "
+        "kernels hit this constantly (log-returns, normal PDFs).",
+        tags=("scalar", "loop", "module-consts"),
+    ),
+    Case(
+        "math_e_tau_kernel", "exp_tau_mean",
+        '''
+import math
+
+def exp_tau_mean(n: int) -> float:
+    total = 0.0
+    for i in range(n):
+        x = i * 0.001
+        total += math.exp(-x) + math.sin(math.tau * x) * math.e
+    return total / n
+''',
+        lambda: (200_000,), "native",
+        "math.e and math.tau read as bare attributes alongside math.* "
+        "calls — same fold, same filter exception, must stay in step "
+        "with mojosub.MATH_CONSTS exactly",
+        tags=("scalar", "loop", "module-consts", "module-calls"),
+    ),
+    Case(
+        "math_unknown_const_stays_cpython", "gamma_pi_mix",
+        '''
+import math
+
+def gamma_pi_mix(n: int) -> float:
+    total = 0.0
+    for i in range(n):
+        total += math.gamma(i * 0.001 + 1.0) + math.pi
+    return total
+''',
+        lambda: (20_000,), "cpython",
+        "math.pi is foldable but math.gamma has no emitted equivalent — "
+        "the const exception must not become a blanket attribute pass. "
+        "Narrower stays safe; what is left is a wasted transpile at worst",
+        tags=("scalar", "loop", "module-calls"),
+    ),
+    Case(
+        "math_pi_shadowed_by_param", "pi_param",
+        '''
+import math
+
+def pi_param(n: int, pi: float) -> float:
+    total = 0.0
+    for i in range(n):
+        total += pi * i
+    return total + math.pi
+''',
+        lambda: (200_000, 3.0), "native",
+        "a parameter named pi shadows the constant inside the body; the "
+        "bare math.pi read outside it still folds. The filter must not "
+        "confuse the two — bound names win over the const table",
+        tags=("scalar", "loop", "module-consts"),
+    ),
 ]
 
 

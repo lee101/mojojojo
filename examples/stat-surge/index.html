@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stat Surge — viral CSV stats + share card, compiled by Mojo</title>
+<style>
+body{font:16px/1.5 system-ui;max-width:900px;margin:40px auto;padding:20px;background:#0e0d12;color:#eceaf2}
+a{color:#b7ff5e}.dim{color:#9a95a8}.mono{font-family:ui-monospace,monospace}
+.panel{background:#17161f;border:1px solid #2a2836;border-radius:14px;padding:16px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:#1e1d29;border-radius:10px;padding:12px}.kpi b{font-size:20px;display:block}
+textarea{width:100%;min-height:110px;background:#121118;color:#eceaf2;border:1px solid #2a2836;border-radius:10px;padding:10px}
+button{background:#b7ff5e;color:#0e0d12;border:0;border-radius:9px;padding:10px 18px;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;color:#b7ff5e;border:1px solid #3a3850}
+input[type=file]{margin-top:8px}
+#card{background:#1e1d29;border-radius:12px;padding:14px;overflow:auto}
+@media(max-width:700px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+<h1>Stat Surge</h1>
+<p class="dim">Paste a CSV/JSON number column (or drop a <code>.csv</code>) and
+get mean, stddev, percentiles and a histogram — computed by a <b>Mojo-compiled
+kernel</b> — plus a copyable <b>share card</b> (SVG) for the group chat.</p>
+<div class="panel">
+<label>Values <span class="dim">(numbers separated by commas, whitespace or newlines)</span><br>
+<textarea id="input" spellcheck="false"></textarea></label>
+<input type="file" id="file" accept=".csv,.txt,.json">
+<div style="display:flex;gap:10px;margin-top:12px">
+<button id="run">Compute stats</button>
+<button id="demo" class="ghost">Load demo data</button>
+<button id="copycard" class="ghost">Copy share card</button>
+</div>
+<p id="status" class="dim" role="status"></p>
+<div id="out"></div>
+<div id="card"></div>
+</div>
+<script>
+const input=document.querySelector('#input'), status=document.querySelector('#status'),
+      out=document.querySelector('#out'), card=document.querySelector('#card');
+function demoData(){
+  let x=7, vals=[];
+  for(let i=0;i<2000;i++){
+    x=(1103515245*x+12345)%2147483648;
+    const r=x/2147483648;
+    vals.push(+(50 + r*40 + (r>0.92?30:0) + i*0.002).toFixed(3));
+  }
+  return vals;
+}
+function parseValues(t){
+  // Tolerates JSON arrays, CSV-with-header, plain lists. Everything that is
+  // not a finite number is dropped — the handler re-validates strictly.
+  t=t.trim().replace(/^\[\s*/, '').replace(/\s*\]$/, '');
+  return t.split(/[,\s;]+/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>Number(s)).filter(v=>Number.isFinite(v));
+}
+function shareSVG(data){
+  const hist=data.histogram, max=Math.max(...hist,1), W=640, H=200, bw=W/hist.length;
+  const bars=hist.map((c,i)=>{
+    const h=Math.round(c/max*(H-40));
+    return `<rect x="${(i*bw).toFixed(1)}" y="${H-24-h}" width="${(bw-1).toFixed(1)}" height="${h}" fill="#b7ff5e" rx="2"/>`;
+  }).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<rect width="${W}" height="${H}" fill="#0e0d12"/>
+<text x="12" y="18" fill="#eceaf2" font-family="ui-monospace,monospace" font-size="13">
+  n=${data.count}  mean=${data.mean}  sd=${data.stddev}  p50=${data.p50}  p90=${data.p90}  p99=${data.p99}</text>
+${bars}</svg>`;
+}
+document.querySelector('#demo').onclick=()=>{ input.value=demoData().join(', '); };
+document.querySelector('#file').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  f.text().then(t=>{ input.value=t; status.textContent=`Loaded ${f.name}`; });
+};
+document.querySelector('#run').onclick=async()=>{
+  const values=parseValues(input.value);
+  if(!values.length){ status.textContent='No numbers found in that input.'; return; }
+  status.textContent=`Computing ${values.length} values…`;
+  const res=await fetch('./api/surge',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({values, bins:16})});
+  const data=await res.json();
+  if(!res.ok){ status.textContent=data.error||JSON.stringify(data); return; }
+  status.textContent=`✓ ${data.note}`;
+  out.innerHTML=`<div class="grid">`+
+    [['Count',data.count],['Mean',data.mean],['Stddev',data.stddev],['Min / Max',`${data.min} / ${data.max}`],
+     ['p50',data.p50],['p90',data.p90],['p99',data.p99],['Bins',data.histogram.length]]
+    .map(([k,v])=>`<div class="kpi"><span class="dim">${k}</span><b>${v}</b></div>`).join('')+
+    `</div>`;
+  card.innerHTML=shareSVG(data);
+  card.dataset.svg=card.innerHTML;
+};
+document.querySelector('#copycard').onclick=()=>{
+  if(!card.dataset.svg){ status.textContent='Compute first.'; return; }
+  navigator.clipboard?.writeText(card.dataset.svg)
+    .then(()=>status.textContent='Share card SVG copied — paste it anywhere.');
+};
+input.value=demoData().join(', ');
+</script>

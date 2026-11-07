@@ -1,0 +1,12 @@
+{
+  "name": "Stat Surge",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "surge": {
+      "language": "python",
+      "entrypoint": "functions/surge.py",
+      "timeout_ms": 5000
+    }
+  }
+}

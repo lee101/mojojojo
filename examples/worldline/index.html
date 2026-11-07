@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worldline — OWID-style country explorer, compiled by Mojo</title>
+<style>
+body{font:16px/1.5 system-ui;max-width:1000px;margin:40px auto;padding:20px;background:#0e0d12;color:#eceaf2}
+a{color:#b7ff5e}.dim{color:#9a95a8}.mono{font-family:ui-monospace,monospace}
+.panel{background:#17161f;border:1px solid #2a2836;border-radius:14px;padding:16px;margin:14px 0}
+table{width:100%;border-collapse:collapse}.th,.td{padding:8px 10px;border-bottom:1px solid #23222e;text-align:right}
+.th:first-child,.td:first-child{text-align:left}
+.bar{height:8px;background:#23222e;border-radius:4px;overflow:hidden;min-width:90px}
+.bar i{display:block;height:100%;background:#b7ff5e}
+button{background:#b7ff5e;color:#0e0d12;border:0;border-radius:9px;padding:10px 18px;font-weight:700;cursor:pointer}
+select{background:#121118;color:#eceaf2;border:1px solid #2a2836;border-radius:8px;padding:8px}
+canvas{width:100%;height:220px;background:#121118;border-radius:10px}
+</style>
+<h1>Worldline</h1>
+<p class="dim">Our-World-in-Data-style explorer: pick a metric, rank countries
+by growth, draw the lines. The growth/CAGR kernels compile to <b>native
+Mojo</b> via mojosub; the table and chart are plain browser code.</p>
+<div class="panel">
+<label>Metric
+<select id="metric">
+<option value="co2">CO₂ emissions (Mt, demo)</option>
+<option value="solar">Solar capacity (GW, demo)</option>
+<option value="life">Life expectancy (yrs, demo)</option>
+</select></label>
+<button id="run">Rank countries</button>
+<span id="status" class="dim"></span>
+</div>
+<canvas id="chart" width="940" height="220"></canvas>
+<div class="panel"><div id="table"></div></div>
+<p class="dim">Demo data is synthetic but shaped like real series (NZ/US/DE/JP/
+BR/IN/KR/ZA …). Paste real series via the API: <code>POST /api/explore
+{"countries": {"NZ": [...], "US": [...]}}</code>. No live fetch — no
+terms-of-service trap, and the example stays free to run.</p>
+<script>
+const DEMO={
+  co2:{NZ:[48,47,46,45,47,46,44,43,42,41,40],US:[5900,5800,5600,5400,5300,5100,5000,4900,4800,4700,4600],
+       DE:[800,780,760,740,720,700,680,660,640,620,600],JP:[1200,1190,1180,1170,1150,1120,1100,1080,1060,1040,1020],
+       BR:[420,430,440,450,470,480,490,500,510,520,530],IN:[1600,1700,1800,1900,2000,2100,2200,2300,2400,2500,2600],
+       KR:[600,610,620,630,640,650,660,670,680,690,700],ZA:[450,460,470,480,490,500,510,520,530,540,550]},
+  solar:{NZ:[0.2,0.3,0.4,0.5,0.7,0.9,1.1,1.4,1.8,2.3,3.0],US:[2,3,4,6,8,11,15,20,27,35,45],
+       DE:[12,15,18,22,27,33,40,48,57,68,80],JP:[1,2,4,7,11,16,22,29,37,46,56],
+       BR:[0.1,0.3,0.6,1.0,1.6,2.4,3.4,4.6,6.0,7.6,9.5],IN:[0.5,1,2,3,5,8,12,17,23,30,38],
+       KR:[0.5,0.8,1.2,1.8,2.6,3.6,4.8,6.2,7.8,9.6,11.5],ZA:[0.1,0.2,0.4,0.7,1.1,1.6,2.2,2.9,3.7,4.6,5.6]},
+  life:{NZ:[80.1,80.5,80.9,81.2,81.6,81.9,82.1,82.3,82.5,82.6,82.7],US:[77.0,77.4,77.8,78.1,78.4,78.6,78.7,78.8,78.6,78.5,78.4],
+       DE:[79.5,80.0,80.4,80.8,81.1,81.4,81.6,81.8,81.9,82.0,82.1],JP:[82.0,82.3,82.6,82.9,83.1,83.4,83.6,83.8,84.0,84.1,84.2],
+       BR:[71,72,73,74,75,76,77,77.5,78,78.5,79],IN:[62,63,64,65,66,67,68,69,69.5,70,70.8],
+       KR:[79,80,81,82,82.5,83,83.4,83.7,84.0,84.2,84.3],ZA:[58,59,60,61,62,63,64,65,66,67,68]}
+};
+const metric=document.querySelector('#metric'), status=document.querySelector('#status'),
+      table=document.querySelector('#table'), chart=document.querySelector('#chart');
+function draw(series, ranked){
+  const ctx=chart.getContext('2d'), W=chart.width, H=chart.height;
+  ctx.clearRect(0,0,W,H);
+  const top=ranked.slice(0,6).map(r=>r.code);
+  const colors=['#b7ff5e','#ff9e5e','#6ee7ff','#f472b6','#facc15','#c4b5fd'];
+  const all=top.flatMap(c=>series[c]);
+  const lo=Math.min(...all), hi=Math.max(...all);
+  const sx=i=>8+i*(W-16)/(series[top[0]].length-1),
+        sy=v=>H-20-(v-lo)/(hi-lo||1)*(H-36);
+  top.forEach((c,idx)=>{
+    ctx.strokeStyle=colors[idx]; ctx.lineWidth=1.7; ctx.beginPath();
+    series[c].forEach((v,i)=> i?ctx.lineTo(sx(i),sy(v)):ctx.moveTo(sx(i),sy(v)));
+    ctx.stroke();
+    ctx.fillStyle=colors[idx]; ctx.font='12px ui-monospace,monospace';
+    ctx.fillText(c, 10+idx*46, 16);
+  });
+  ctx.fillStyle='#9a95a8'; ctx.fillText(`${lo} → ${hi}`, W-110, 16);
+}
+document.querySelector('#run').onclick=async()=>{
+  const series=DEMO[metric.value];
+  status.textContent='Ranking…';
+  const res=await fetch('./api/explore',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({countries:series})});
+  const data=await res.json();
+  if(!res.ok){ status.textContent=data.error||JSON.stringify(data); return; }
+  status.textContent=`${data.count} countries · ${data.note}`;
+  draw(series, data.ranked);
+  const max=Math.max(...data.ranked.map(r=>Math.abs(r.growth_pct)),0.01);
+  table.innerHTML=`<table><tr><th>Country</th><th>First</th><th>Latest</th>
+    <th>Growth %</th><th>CAGR %</th><th style="text-align:left">Growth bar</th></tr>`+
+    data.ranked.map(r=>`<tr><td class="mono">${r.code}</td><td>${r.first}</td><td>${r.last}</td>
+      <td>${r.growth_pct}</td><td>${r.cagr_pct}</td>
+      <td><div class="bar"><i style="width:${Math.abs(r.growth_pct)/max*100}%"></i></div></td></tr>`).join('')+
+    `</table>`;
+};
+</script>
