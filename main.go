@@ -515,6 +515,7 @@ func (s *Server) handleSitemap(ctx *fasthttp.RequestCtx) {
 		"png-to-webp", "mojo-serverless", "mojojojo-style-transfer",
 		"mojojojo-fractal", "multi-mojo-libs",
 		"trendfolio", "worldline", "stat-surge",
+		"compound-growth", "season-line", "sparkline", "afford-it",
 	} {
 		b.WriteString("<url><loc>" + html.EscapeString(s.cfg.SiteBaseURL+"/examples/source/"+slug+"/index.html") +
 			"</loc><lastmod>2026-08-04</lastmod><priority>0.7</priority></url>\n")

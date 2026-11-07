@@ -1,0 +1,12 @@
+{
+  "name": "Season Line",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "form": {
+      "language": "python",
+      "entrypoint": "functions/form.py",
+      "timeout_ms": 5000
+    }
+  }
+}

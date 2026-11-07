@@ -1,0 +1,12 @@
+{
+  "name": "Sparkline",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "render": {
+      "language": "python",
+      "entrypoint": "functions/render.py",
+      "timeout_ms": 5000
+    }
+  }
+}

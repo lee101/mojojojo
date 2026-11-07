@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Afford It — can I buy this? compiled by Mojo</title>
+<style>
+body{font:16px/1.5 system-ui;max-width:900px;margin:40px auto;padding:20px;background:#0e0d12;color:#eceaf2}
+a{color:#b7ff5e}.dim{color:#9a95a8}.mono{font-family:ui-monospace,monospace}
+.panel{background:#17161f;border:1px solid #2a2836;border-radius:14px;padding:16px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+label{display:block;color:var(--dim);font-size:14px}
+input{width:100%;margin-top:4px;background:#121118;color:#eceaf2;border:1px solid #2a2836;border-radius:9px;padding:10px}
+button{background:#b7ff5e;color:#0e0d12;border:0;border-radius:9px;padding:10px 18px;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;color:#b7ff5e;border:1px solid #3a3850}
+.kpi{background:#1e1d29;border-radius:10px;padding:14px}.kpi b{font-size:24px;display:block}
+.verdict{font-size:20px;padding:16px;background:#1e2a1a;border:1px solid #3a5a2a;border-radius:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+<h1>Afford It</h1>
+<p class="dim">The "can I buy this?" calculator. Months to save, amortised
+monthly cost, and a stress test: what happens if your income drops 30%
+for a year? Kernels compile to <b>native Mojo</b>.</p>
+<div class="panel">
+<div class="grid">
+<label>Price ($)<input id="price" type="number" value="800"></label>
+<label>Current savings ($)<input id="savings" type="number" value="200"></label>
+<label>Monthly income ($)<input id="monthly_income" type="number" value="3000"></label>
+<label>Monthly essentials ($)<input id="monthly_essential" type="number" value="2200"></label>
+<label>Monthly saving ($)<input id="monthly_saving" type="number" value="300"></label>
+<label>Stress window (months)<input id="months" type="number" value="12"></label>
+</div>
+<div style="display:flex;gap:10px;margin-top:14px">
+<button id="run">Check</button>
+<button id="share" class="ghost">Copy link</button>
+</div>
+</div>
+<div id="out"></div>
+<div class="panel"><h3 style="margin-top:0">The kernels</h3>
+<pre class="mono" style="font-size:12px;overflow:auto">def months_to_save(price, savings, monthly_saving) -> int:
+    if price <= savings: return 0
+    if monthly_saving <= 0: return -1
+    balance = savings; months = 0
+    while balance < price:
+        balance += monthly_saving; months += 1
+    return months</pre>
+<p class="dim">A <code>while</code> + <code>break</code>-free bounded loop
+— compilers love it, Python pays per-iteration. Same contract as the
+other examples: parse in the handler, reduce in the kernel.</p></div>
+<script>
+const $=id=>document.querySelector('#'+id);
+$('run').onclick=async()=>{
+  const body={price:+$('price').value, savings:+$('savings').value,
+    monthly_income:+$('monthly_income').value,
+    monthly_essential:+$('monthly_essential').value,
+    monthly_saving:+$('monthly_saving').value, months:+$('months').value};
+  $('out').textContent='Checking…';
+  const res=await fetch('./api/afford',{method:'POST',
+    headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const data=await res.json();
+  if(!res.ok){ $('out').textContent=data.error||JSON.stringify(data); return; }
+  $('out').innerHTML=`<div class="verdict">${data.verdict}</div>`+
+    `<div class="grid" style="margin-top:12px">`+
+    [['Months to save', data.months_to_save<0?'never':data.months_to_save],
+     ['Monthly cost', '$'+data.monthly_cost],
+     ['Stress balance', '$'+data.stress_balance],
+     ['Horizon', body.months+' months']]
+    .map(([k,v])=>`<div class="kpi"><span class="dim">${k}</span><b>${v}</b></div>`).join('')+
+    `</div><p class="dim">${data.note}</p>`;
+  history.replaceState(null,'','#'+new URLSearchParams(body).toString());
+};
+$('share').onclick=()=>navigator.clipboard?.writeText(location.href)
+  .then(()=>{$('share').textContent='Copied!';});
+try{
+  const q=new URLSearchParams(location.hash.slice(1));
+  if(q.has('price')){ for(const k of ['price','savings','monthly_income','monthly_essential','monthly_saving','months']) $(k).value=q.get(k); $('run').click(); }
+}catch(e){}
+</script>

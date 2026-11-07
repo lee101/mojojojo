@@ -1,0 +1,12 @@
+{
+  "name": "Compound Growth",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "grow": {
+      "language": "python",
+      "entrypoint": "functions/grow.py",
+      "timeout_ms": 5000
+    }
+  }
+}

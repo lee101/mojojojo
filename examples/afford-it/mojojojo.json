@@ -1,0 +1,12 @@
+{
+  "name": "Afford It",
+  "runtime": "app",
+  "entrypoint": "index.html",
+  "functions": {
+    "afford": {
+      "language": "python",
+      "entrypoint": "functions/afford.py",
+      "timeout_ms": 5000
+    }
+  }
+}

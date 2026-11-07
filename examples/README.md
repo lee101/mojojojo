@@ -11,6 +11,10 @@ Python function that upgrades to an adjacent Mojo port when the worker is warm.
 | [Phone Passport](phone-passport) | E.164 cleanup and validation via `mojo-phonenumbers` | [Deploy](https://mojojojo.cc/studio?example=phone-passport&kind=tool) |
 | [Photo Twin](photo-twin) | Perceptual duplicate detection via `mojo-imagehash` | [Deploy](https://mojojojo.cc/studio?example=photo-twin&kind=tool) |
 | [Trendfolio](trendfolio) | Macrotrends-style price stats; kernel compiles via mojosub | [Deploy](https://mojojojo.cc/studio?example=trendfolio&kind=tool) |
+| [Compound Growth](compound-growth) | Viral finance calculator; projection kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=compound-growth&kind=tool) |
+| [Season Line](season-line) | Sports form visualizer; form/run kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=season-line&kind=tool) |
+| [Sparkline](sparkline) | Embeddable tiny SVG charts; downsampling kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=sparkline&kind=tool) |
+| [Afford It](afford-it) | "Can I buy this?" calculator; affordability kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=afford-it&kind=tool) |
 | [Worldline](worldline) | OWID-style country explorer; growth/CAGR kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=worldline&kind=tool) |
 | [Stat Surge](stat-surge) | CSV stats + SVG share card; histogram/percentile kernels compile via mojosub | [Deploy](https://mojojojo.cc/studio?example=stat-surge&kind=tool) |
 | [JSON → CSV](json-to-csv) | Minimal Python serverless function | [Guide](json-to-csv/README.md) |
