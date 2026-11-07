@@ -74,6 +74,22 @@ def jail_available() -> bool:
     return os.path.exists(JAIL) and shutil.which("sudo") is not None
 
 
+def require_jail() -> bool:
+    """Production switch: refuse to run tenant code outside mojojail."""
+    return os.environ.get("MOJOJOJO_REQUIRE_JAIL", "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def _refuse_unjailed() -> "Result":
+    return Result(
+        ok=False, exit_code=126, timed_out=False, stdout="",
+        stderr="mojojojo: sandbox unavailable (MOJOJOJO_REQUIRE_JAIL is set); "
+               "refusing to run unisolated\n",
+        wall_ms=0.0, cpu_ms=0.0, user_ms=0.0, warm_ms=0.0, accelerated=[],
+        accel={}, mojo_aliases=[], cache_seeded=0, isolated=False,
+        warm_start=False, run_id="")
+
+
 def mojo_binary() -> str:
     """The host compiler path. Never handed to the sandbox — see mojo_stub."""
     return hostcompile.mojo_binary()
@@ -134,6 +150,8 @@ def run_binary(*, binary: str, stdin: str = "", args=None,
     """
     args = [str(a) for a in (args or [])]
     timeout_s = max(1, min(int(round(timeout_ms / 1000.0)), 900))
+    if require_jail() and not jail_available():
+        return _refuse_unjailed()
     run_id, work = _workdir()
     staged = mojoprog.stage(binary, work)
     trace_path = os.path.join(work, "mojo-trace")
@@ -254,6 +272,8 @@ def run(*, python: str, code: str, stdin: str = "", args=None,
     # The sandbox user is not us and has to write in the run directory. Every
     # run shares the uid, so what keeps one run out of another's is that
     # RUN_ROOT is not listable (0733) and this name is 32 random hex digits.
+    if require_jail() and not jail_available():
+        return _refuse_unjailed()
     run_id, work = _workdir()
 
     program = os.path.join(work, "program.py")
