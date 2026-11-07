@@ -743,11 +743,20 @@ func (s *Server) handleHostedApp(ctx *fasthttp.RequestCtx, rest string) {
 	}
 	ctx.SetContentType(contentType)
 	ctx.Response.Header.Set("X-Content-Type-Options", "nosniff")
-	if strings.HasPrefix(strings.ToLower(contentType), "text/html") {
-		ctx.Response.Header.Set("Content-Security-Policy", "sandbox allow-scripts allow-forms allow-downloads; default-src 'self' data: blob:; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'")
+	// Every hosted response is sandboxed (opaque origin), not just text/html:
+	// a deployed .svg/.xml/.xhtml opened directly would otherwise run scripts
+	// same-origin with the main site.
+	ctx.Response.Header.Set("Content-Security-Policy", "sandbox allow-scripts allow-forms allow-downloads; default-src 'self' data: blob:; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'")
+	lowerType := strings.ToLower(contentType)
+	if strings.HasPrefix(lowerType, "text/html") {
 		ctx.Response.Header.Set("Cache-Control", "no-cache")
 	} else {
 		ctx.Response.Header.Set("Cache-Control", "public, max-age=31536000, immutable")
+	}
+	if strings.Contains(lowerType, "svg") || strings.Contains(lowerType, "xml") {
+		// Active markup formats are downloaded, never rendered as a document.
+		// <img src> still displays them (scripts do not run in image context).
+		ctx.Response.Header.Set("Content-Disposition", "attachment")
 	}
 	ctx.SetBody(body)
 }
