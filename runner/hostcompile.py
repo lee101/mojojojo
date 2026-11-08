@@ -108,6 +108,21 @@ def _count_entries() -> int:
         return 0
 
 
+_COMPILE_ENV_KEEP = ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR", "LD_LIBRARY_PATH",
+                     "MODULAR_HOME", "MOJO_PYTHON_LIBRARY", "CUDA_HOME")
+
+
+def compile_env() -> dict:
+    """Minimal environment for compiling tenant source: no credentials.
+
+    An allowlist, not a denylist: the host environment holds R2 keys, DB URLs
+    and service tokens, none of which `mojo build` needs.
+    """
+    env = {k: os.environ[k] for k in _COMPILE_ENV_KEEP if os.environ.get(k)}
+    env.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
+    return env
+
+
 def mojo_binary() -> str:
     """Absolute path to the real Mojo compiler on this host.
 

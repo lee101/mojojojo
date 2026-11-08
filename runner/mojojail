@@ -221,7 +221,14 @@ fi
 # allowing traversal into an allowlisted path underneath.
 hide() {
     [ -d "$1" ] || return 0
-    mount -t tmpfs -o "size=1m,mode=${2:-000}" mojojail-hidden "$1" 2>/dev/null || true
+    if ! mount -t tmpfs -o "size=1m,mode=${2:-000}" mojojail-hidden "$1" 2>/dev/null; then
+        # /etc/mojojail.strict (root-owned, created at deploy time) makes a
+        # failed hide fatal instead of silently leaving the tree readable.
+        if [ -e /etc/mojojail.strict ]; then
+            echo "mojojail: could not hide $1" >&2
+            exit 97
+        fi
+    fi
 }
 
 # Homes hold ~/.secretbashrc, ~/.aws and every other credential on this box;

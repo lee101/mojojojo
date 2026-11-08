@@ -218,7 +218,7 @@ def _compile(project: dict[str, str], entrypoint: str,
     if not mojo:
         return False, "mojojojo: no Mojo toolchain on this worker"
     os.makedirs(SHARED, exist_ok=True)
-    env = dict(os.environ)
+    env = hostcompile.compile_env()
     # Must match the resolved compiler or it starts and then cannot find `std`.
     home = hostcompile.modular_home()
     if home:
