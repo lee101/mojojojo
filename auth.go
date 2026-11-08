@@ -17,7 +17,8 @@ import (
 const (
 	sessionCookie     = "mojojojo_session"
 	appID             = "mojojojo"
-	keyPrefix         = "mj_live_"
+	keyPrefix         = "sk-mj-"
+	legacyKeyPrefix   = "mj_live_"
 	sessionTTL        = 30 * 24 * time.Hour
 	passwordMinLength = 6
 	passwordMaxLength = 72
@@ -205,7 +206,7 @@ func (a *authStore) userFromSession(ctx *fasthttp.RequestCtx) *User {
 }
 
 func (a *authStore) userFromAPIKey(token string) *User {
-	if a == nil || !strings.HasPrefix(token, keyPrefix) {
+	if a == nil || (!strings.HasPrefix(token, keyPrefix) && !strings.HasPrefix(token, legacyKeyPrefix)) {
 		return nil
 	}
 	var userID string

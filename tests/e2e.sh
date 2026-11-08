@@ -52,7 +52,7 @@ echo "2. a key can be minted with the session"
 KEY=$(curl -s -X POST "http://127.0.0.1:$PORT/v1/keys" -H "Cookie: mojojojo_session=$TOKEN" \
   -H 'Content-Type: application/json' -d '{"name":"e2e"}' |
   python3 -c "import json,sys; print(json.load(sys.stdin).get('key',''))")
-[[ "$KEY" == mj_live_* ]] || fail "no key issued"
+[[ "$KEY" == sk-mj-* ]] || fail "no key issued"
 
 echo "2b. a signed branded asset upload writes, records, and deletes cleanly"
 ASSET_BODY='mojojojo-e2e-asset'
