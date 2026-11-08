@@ -5,7 +5,7 @@ millisecond. Add credits to start, with a $1 bonus on your first top-up.
 
 ```bash
 pip install mojojojo
-export MOJOJOJO_API_KEY=mj_live_...   # https://mojojojo.cc/keys
+export MOJOJOJO_API_KEY=sk-mj-...   # https://mojojojo.cc/keys
 ```
 
 ```python

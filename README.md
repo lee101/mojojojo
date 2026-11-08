@@ -355,7 +355,7 @@ nginx :443 ─→ Go web tier :4341 ─→ Python worker :4342 ─→ mojojail �
               auth + billing        envs + accel policy    netns, mojorun uid
 ```
 
-- **Web tier** (`*.go`) — local password/session auth or `mj_live_` API key,
+- **Web tier** (`*.go`) — local password/session auth or `sk-mj-` API key,
   per-millisecond accrual, the local credit ledger, and the public API shape. It
   never executes anything.
 - **Worker** (`runner/`) — stdlib-only HTTP server. Content-addressed uv venvs,

@@ -7,7 +7,7 @@ write a curl command you are done in a minute.</p>
 <h2>Authenticate</h2>
 <p>Either an API key from <a href="/keys">/keys</a>, or the mojojojo session
 cookie used on this site. Server-side runs always need one of the two.</p>
-<pre data-lang="bash">Authorization: Bearer mj_live_...</pre>
+<pre data-lang="bash">Authorization: Bearer sk-mj-...</pre>
 <p class="dim">There is no anonymous execution endpoint, and that is deliberate:
 free compute behind an unauthenticated URL is free compute per <em>request</em>,
 which is a botnet with good documentation. The browser runtime needs no account
@@ -128,7 +128,7 @@ halfway through one — <code class="inl">mojojojo credits</code> in the CLI, or
 
 <h2 id="sdk">Open-source Python SDK and CLI</h2>
 <pre data-lang="bash"><code>pip install mojojojo
-export MOJOJOJO_API_KEY=mj_live_...
+export MOJOJOJO_API_KEY=sk-mj-...
 
 mojojojo run job.py
 mojojojo run kernel.mojo --language mojo

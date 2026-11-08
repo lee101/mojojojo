@@ -61,11 +61,11 @@ and accelerated performance search behind one API.</p>
 
 <h2>API</h2>
 <pre data-lang="bash"><code>curl https://mojojojo.cc/v1/vector/projects/vec_PROJECT/upsert \
-  -H "Authorization: Bearer mj_live_…" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-mj-…" -H "Content-Type: application/json" \
   -d '{"documents":[{"id":"guide","text":"Mojo compiles fast kernels."}]}'
 
 curl https://mojojojo.cc/v1/vector/projects/vec_PROJECT/search \
-  -H "Authorization: Bearer mj_live_…" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-mj-…" -H "Content-Type: application/json" \
   -d '{"query":"fast compiled code","limit":10}'</code></pre>
 
 <h2>Choose exact or performance search</h2>
