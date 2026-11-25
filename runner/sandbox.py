@@ -43,6 +43,11 @@ RUN_ROOT = os.path.join(DATA_ROOT, "runs")
 JAIL = os.environ.get("MOJOJOJO_JAIL", "/usr/local/bin/mojojail")
 MOJOSUB_PATH = os.environ.get("MOJOJOJO_MOJOSUB", "/nvme0n1-disk/code/mojosub")
 RUNNER_DIR = os.path.dirname(os.path.abspath(__file__))
+# The unjailed (development) path wraps the program in coreutils `timeout`.
+# Resolved here, from the runner's own PATH, because the child's scrubbed
+# PATH (/usr/bin:/bin) does not contain it everywhere — macOS has no
+# /usr/bin/timeout; Homebrew's coreutils puts it (or `gtimeout`) elsewhere.
+TIMEOUT_BIN = shutil.which("timeout") or shutil.which("gtimeout") or "timeout"
 
 MAX_OUTPUT = int(os.environ.get("MOJOJOJO_MAX_OUTPUT", str(256 * 1024)))
 MEM_BYTES = int(os.environ.get("MOJOJOJO_MEM_BYTES", str(2 * 1024 * 1024 * 1024)))
@@ -180,7 +185,7 @@ def run_binary(*, binary: str, stdin: str = "", args=None,
         assignments = [f"{k}={v}" for k, v in child_env.items()]
         cmd = jail_command(hard_s, work, [], assignments, inner)
     else:
-        cmd = ["timeout", "-s", "KILL", str(hard_s), *inner]
+        cmd = [TIMEOUT_BIN, "-s", "KILL", str(hard_s), *inner]
 
     out_path = os.path.join(work, "stdout")
     err_path = os.path.join(work, "stderr")
@@ -353,7 +358,7 @@ def run(*, python: str, code: str, stdin: str = "", args=None,
         assignments = [f"{k}={v}" for k, v in child_env.items()]
         cmd = jail_command(hard_s, work, mojo_paths, assignments, inner)
     else:
-        cmd = ["timeout", "-s", "KILL", str(hard_s), *inner]
+        cmd = [TIMEOUT_BIN, "-s", "KILL", str(hard_s), *inner]
 
     out_path = os.path.join(work, "stdout")
     err_path = os.path.join(work, "stderr")
