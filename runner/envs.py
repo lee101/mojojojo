@@ -101,7 +101,8 @@ def base_interpreter() -> str:
     candidates = [os.environ.get("MOJOJOJO_PYTHON_BIN", "")]
     candidates += [f"/usr/bin/python{PYTHON_VERSION}", "/usr/bin/python3"]
     for candidate in candidates:
-        if candidate and os.path.exists(candidate) and _visible(candidate):
+        if candidate and os.path.exists(candidate) and _visible(candidate) \
+                and _visible(_real_executable(candidate)):
             _interpreter = candidate
             return _interpreter
     # Nothing on the system: let uv manage one, but inside our own directory
@@ -119,9 +120,27 @@ def base_interpreter() -> str:
     return _interpreter
 
 
+def _real_executable(candidate: str) -> str:
+    """Where the interpreter really runs from. macOS's /usr/bin/python3 is an
+    xcrun shim that execs the Command Line Tools Python under /Library, so the
+    path alone says nothing about what a venv built from it will link to."""
+    try:
+        out = subprocess.run(
+            [candidate, "-c", "import os, sys; print(os.path.realpath(sys.executable))"],
+            capture_output=True, text=True, timeout=30)
+        return out.stdout.strip() or candidate
+    except (OSError, subprocess.SubprocessError):
+        return candidate
+
+
 def _visible(path: str) -> bool:
+    # Compare resolved paths on both sides: on macOS /var -> /private/var, so an
+    # unresolved DATA_ROOT never matched. An interpreter that is a real file
+    # inside the env root (uv copies it on macOS instead of symlinking into the
+    # managed Python) lives where the run executes, so it is reachable too.
     real = os.path.realpath(path)
-    return any(real.startswith(prefix) for prefix in VISIBLE_PREFIXES)
+    prefixes = [os.path.realpath(p) for p in VISIBLE_PREFIXES] + [os.path.realpath(ENV_ROOT)]
+    return any(real == p or real.startswith(p.rstrip("/") + "/") for p in prefixes)
 
 
 def key_for(packages: list[str]) -> str:

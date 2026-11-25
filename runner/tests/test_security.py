@@ -215,6 +215,8 @@ def test_no_new_privs_blocks_setuid_binaries(python_exe):
 
 # --- resource limits ------------------------------------------------------
 
+@pytest.mark.skipif(sys.platform == "darwin",
+                    reason="macOS does not enforce RLIMIT_AS; the memory cap is a Linux (prod) guarantee")
 def test_memory_is_capped(python_exe):
     r = run(python_exe, """
         chunks = []
