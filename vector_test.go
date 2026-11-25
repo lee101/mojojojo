@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -267,6 +268,11 @@ func TestReservedVectorCapacityRequiresAnAvailableGPU(t *testing.T) {
 }
 
 func TestVectorWorkerBundleContainsPortableRuntime(t *testing.T) {
+	for _, path := range vectorWorkerSiblingFiles {
+		if _, err := os.Stat(path); err != nil {
+			t.Skipf("vector worker bundle needs sibling build artifacts (../gobed, ../mojo-embed, ../mojosub): %v", err)
+		}
+	}
 	s := &Server{}
 	ctx := &fasthttp.RequestCtx{}
 	s.handleVectorWorkerTarball(ctx)

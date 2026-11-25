@@ -194,17 +194,25 @@ func (s *Server) vectorWorkerBootstrap(kind scale.Kind) string {
 // it contains no account, provider, or storage credentials.
 var vectorWorkerBundle cachedBundle
 
+// vectorWorkerSiblingFiles are the bundle members built in sibling checkouts
+// (model weights, the embedding library, the Mojo runtime), keyed by their
+// path inside the tarball.
+var vectorWorkerSiblingFiles = map[string]string{
+	"model/modelint8_512dim.safetensors": "../gobed/model/modelint8_512dim.safetensors",
+	"model/tokenizer.json":               "../gobed/model/tokenizer.json",
+	"lib/libmojo_embed.so":               "../mojo-embed/build/libmojo_embed.so",
+	"runtime/libKGENCompilerRTShared.so": "../mojosub/.pixi/envs/default/lib/libKGENCompilerRTShared.so",
+	"runtime/libAsyncRTMojoBindings.so":  "../mojosub/.pixi/envs/default/lib/libAsyncRTMojoBindings.so",
+}
+
 func (s *Server) handleVectorWorkerTarball(ctx *fasthttp.RequestCtx) {
 	body, etag, err := vectorWorkerBundle.load(func() ([]byte, error) {
 		var body bytes.Buffer
 		gz := gzip.NewWriter(&body)
 		tw := tar.NewWriter(gz)
-		files := map[string]string{
-			"model/modelint8_512dim.safetensors": "../gobed/model/modelint8_512dim.safetensors",
-			"model/tokenizer.json":               "../gobed/model/tokenizer.json",
-			"lib/libmojo_embed.so":               "../mojo-embed/build/libmojo_embed.so",
-			"runtime/libKGENCompilerRTShared.so": "../mojosub/.pixi/envs/default/lib/libKGENCompilerRTShared.so",
-			"runtime/libAsyncRTMojoBindings.so":  "../mojosub/.pixi/envs/default/lib/libAsyncRTMojoBindings.so",
+		files := map[string]string{}
+		for name, path := range vectorWorkerSiblingFiles {
+			files[name] = path
 		}
 		if err := filepath.Walk("vectorworker", func(path string, info os.FileInfo, err error) error {
 			if err == nil && !info.IsDir() && !strings.Contains(path, "__pycache__") && !strings.HasSuffix(path, ".pyc") {

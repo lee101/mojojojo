@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	"net/url"
 	"os"
 	"sync"
 	"testing"
@@ -66,7 +66,15 @@ func initPostgresTests() {
 		_ = admin.Close()
 		return
 	}
-	db, err := sql.Open("postgres", fmt.Sprintf("postgres:///%s?host=/var/run/postgresql&sslmode=disable", name))
+	// Connect to the new database the same way the admin connection did
+	// (host, port, socket dir, user), so MOJOJOJO_TEST_DATABASE_URL works on
+	// hosts whose socket is not /var/run/postgresql (e.g. Homebrew's /tmp).
+	testURL, err := url.Parse(adminURL)
+	var db *sql.DB
+	if err == nil {
+		testURL.Path = "/" + name
+		db, err = sql.Open("postgres", testURL.String())
+	}
 	if err == nil {
 		err = db.Ping()
 	}
